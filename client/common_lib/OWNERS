@@ -1,3 +1,2 @@
 include chromiumos/config:/owners/testservice
-include /ENGPROD_OWNERS
-include /INFRA_OWNERS
+include /OWNERS
