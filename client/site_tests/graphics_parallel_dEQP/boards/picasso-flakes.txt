@@ -1,2 +1,0 @@
-# Intermittent failure in ~5% of runs on zork
-dEQP-VK.multiview.multisample.1_2_4_8

@@ -1,2 +1,0 @@
-dEQP-VK.synchronization.internally_synchronized_objects.pipeline_cache_graphics
-dEQP-VK.wsi.display_control.register_device_event

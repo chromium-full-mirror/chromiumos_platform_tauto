@@ -1,3 +1,0 @@
-# Times out at 60 seconds
-dEQP-VK.ssbo.phys.layout.random.16bit.scalar.13
-dEQP-VK.api.device_init.create_instance_device_intentional_alloc_fail

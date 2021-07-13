@@ -1,6 +1,0 @@
-# These all time out, save lab time by skipping them.
-dEQP-VK.geometry.layered.3d.*
-dEQP-VK.geometry.layered.cube_array.*
-dEQP-VK.spirv_assembly.instruction.graphics.spirv_ids_abuse.lots_ids.*
-dEQP-VK.spirv_assembly.instruction.compute.spirv_ids_abuse.lots_ids.*
-dEQP-VK.ubo.random.all_out_of_order_offsets.45
