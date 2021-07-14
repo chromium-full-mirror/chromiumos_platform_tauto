@@ -31,7 +31,7 @@ from autotest_lib.server import afe_utils
 from autotest_lib.server import utils as server_utils
 from autotest_lib.server.cros import provision
 from autotest_lib.server.cros.dynamic_suite import constants as ds_constants
-from autotest_lib.server.cros.dynamic_suite import tools, frontend_wrappers
+from autotest_lib.server.cros.dynamic_suite import tools
 from autotest_lib.server.cros.device_health_profile import device_health_profile
 from autotest_lib.server.cros.device_health_profile import profile_constants
 from autotest_lib.server.cros.servo import pdtester
@@ -70,7 +70,6 @@ class CrosHost(abstract_ssh.AbstractSSHHost):
 
     VERSION_PREFIX = provision.CROS_VERSION_PREFIX
 
-    _AFE = frontend_wrappers.RetryingAFE(timeout_min=5, delay_sec=10)
 
     # Timeout values (in seconds) associated with various Chrome OS
     # state changes.

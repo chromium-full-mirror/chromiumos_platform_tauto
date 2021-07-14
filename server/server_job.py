@@ -50,7 +50,6 @@ from autotest_lib.server import subcommand
 from autotest_lib.server import test
 from autotest_lib.server.autotest import OFFLOAD_ENVVAR
 from autotest_lib.server import utils as server_utils
-from autotest_lib.server.cros.dynamic_suite import frontend_wrappers
 from autotest_lib.server import hosts
 from autotest_lib.server.hosts import abstract_ssh
 from autotest_lib.server.hosts import afe_store
@@ -59,8 +58,7 @@ from autotest_lib.server.hosts import shadowing_store
 from autotest_lib.server.hosts import factory as host_factory
 from autotest_lib.server.hosts import host_info
 from autotest_lib.server.hosts import ssh_multiplex
-from autotest_lib.tko import models as tko_models
-from autotest_lib.tko import parser_lib
+
 from six.moves import zip
 
 try:

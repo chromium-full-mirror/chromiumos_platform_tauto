@@ -8,7 +8,7 @@
 import logging
 
 import common
-from autotest_lib.server.hosts import afe_store
+
 from autotest_lib.server.hosts import host_info
 from autotest_lib.server.hosts import shadowing_store
 
