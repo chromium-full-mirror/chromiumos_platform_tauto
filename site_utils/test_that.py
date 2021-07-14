@@ -20,50 +20,9 @@ import logging
 logging.basicConfig(level=logging.INFO)
 
 import common
-from autotest_lib.client.common_lib import error, logging_manager
+from autotest_lib.client.common_lib import logging_manager
 from autotest_lib.server import server_logging_config
-from autotest_lib.server.cros.dynamic_suite import constants
-from autotest_lib.server.hosts import factory
 from autotest_lib.site_utils import test_runner_utils
-
-
-_QUICKMERGE_SCRIPTNAME = '/mnt/host/source/chromite/bin/autotest_quickmerge'
-
-
-def _get_board_from_host(remote):
-    """Get the board of the remote host.
-
-    @param remote: string representing the IP of the remote host.
-
-    @return: A string representing the board of the remote host.
-    """
-    logging.info('Board unspecified, attempting to determine board from host.')
-    host = factory.create_host(remote)
-    try:
-        board = host.get_board().replace(constants.BOARD_PREFIX, '')
-    except error.AutoservRunError:
-        raise test_runner_utils.TestThatRunError(
-                'Cannot determine board, please specify a --board option.')
-    logging.info('Detected host board: %s', board)
-    return board
-
-
-def _get_model_from_host(remote):
-    """Get the model of the remote host.
-
-    @param remote: string representing the IP of the remote host.
-
-    @return: A string representing the board of the remote host.
-   """
-    logging.info('Model unspecified, attempting to determine model from host.')
-    host = factory.create_host(remote)
-    try:
-        model = host.get_platform()
-    except error.AutoservRunError:
-        raise test_runner_utils.TestThatRunError(
-                'Cannot determine model, please specify a --model option.')
-    logging.info('Detected host model: %s', model)
-    return model
 
 
 def validate_arguments(arguments):
@@ -144,16 +103,11 @@ def _parse_arguments_internal(argv):
     parser.add_argument('-p', '--pool', metavar='POOL', default='suites',
                         help='Pool to use when running tests in the lab. '
                              'Default is "suites"')
-    parser.add_argument('--autotest_dir', metavar='AUTOTEST_DIR',
-                        help='Use AUTOTEST_DIR instead of normal board sysroot '
-                             'copy of autotest, and skip the quickmerge step.')
-    parser.add_argument('--no-quickmerge', action='store_true', default=False,
-                        dest='no_quickmerge',
-                        help='Skip the quickmerge step and use the sysroot '
-                             'as it currently is. May result in un-merged '
-                             'source tree changes not being reflected in the '
-                             'run. If using --autotest_dir, this flag is '
-                             'automatically applied.')
+    parser.add_argument(
+            '--autotest_dir',
+            metavar='AUTOTEST_DIR',
+            help='Use AUTOTEST_DIR instead of normal board sysroot '
+            'copy of autotest.')
     parser.add_argument('--allow-chrome-crashes',
                         action='store_true',
                         default=False,
@@ -199,10 +153,8 @@ def perform_bootstrap_into_autotest_root(arguments, autotest_path, argv):
     Perfoms a bootstrap to run test_that from the |autotest_path|.
 
     This function is to be called from test_that's main() script, when
-    test_that is executed from the source tree location. It runs
-    autotest_quickmerge to update the sysroot unless arguments.no_quickmerge
-    is set. It then executes and waits on the version of test_that.py
-    in |autotest_path|.
+    test_that is executed from the source tree location. It then executes
+    and waits on the version of test_that.py in |autotest_path|.
 
     @param arguments: A parsed arguments object, as returned from
                       test_that.parse_arguments(...).
@@ -216,22 +168,6 @@ def perform_bootstrap_into_autotest_root(arguments, autotest_path, argv):
             server_logging_config.ServerLoggingConfig(),
             use_console=True,
             verbose=arguments.debug)
-    if arguments.no_quickmerge:
-        logging.info('Skipping quickmerge step.')
-    else:
-        logging.info('Running autotest_quickmerge step.')
-        command = [_QUICKMERGE_SCRIPTNAME, '--board='+arguments.board]
-        s = subprocess.Popen(command,
-                             stdout=subprocess.PIPE,
-                             stderr=subprocess.STDOUT)
-        for message in iter(s.stdout.readline, b''):
-            logging.info('quickmerge| %s', message.strip())
-        return_code = s.wait()
-        if return_code:
-            raise test_runner_utils.TestThatRunError(
-                    'autotest_quickmerge failed with error code %s.' %
-                    return_code)
-
     logging.info('Re-running test_that script in %s copy of autotest.',
                  autotest_path)
     script_command = os.path.join(autotest_path, 'site_utils',
@@ -253,9 +189,9 @@ def perform_bootstrap_into_autotest_root(arguments, autotest_path, argv):
     return proc.wait()
 
 
-def _main_for_local_run(argv, arguments):
+def _main_for_all_run(argv, arguments):
     """
-    Effective entry point for local test_that runs.
+    Effective entry point test runs.
 
     @param argv: Script command line arguments.
     @param arguments: Parsed command line arguments.
@@ -266,31 +202,14 @@ def _main_for_local_run(argv, arguments):
                                        arguments.ssh_private_key)
     arguments.results_dir = results_directory
 
-    # If the board and/or model is not specified through --board and/or
-    # --model, and is not set in the default_board file, determine the board by
-    # ssh-ing into the host. Also prepend it to argv so we can re-use it when we
-    # run test_that from the sysroot.
-    if arguments.board is None:
-        arguments.board = _get_board_from_host(arguments.remote)
-        argv = ['--board=%s' % (arguments.board,)] + argv
-
-    if arguments.model is None:
-        arguments.model = _get_model_from_host(arguments.remote)
-        argv = ['--model=%s' % (arguments.model, )] + argv
+    # TODO, maybe need to force a board/model specification.
 
     if arguments.autotest_dir:
         autotest_path = arguments.autotest_dir
-        arguments.no_quickmerge = True
     else:
-        sysroot_path = os.path.join('/build', arguments.board, '')
-
-        if not os.path.exists(sysroot_path):
-            print(('%s does not exist. Have you run '
-                   'setup_board?' % sysroot_path), file=sys.stderr)
-            return 1
-
-        path_ending = 'usr/local/build/autotest'
-        autotest_path = os.path.join(sysroot_path, path_ending)
+        # TODO, make this default to wherever this file is +1
+        # Might need eventually come back to sysroot for deps. TBD.
+        raise Exception("need to provide autotest_dir")
 
     site_utils_path = os.path.join(autotest_path, 'site_utils')
 
@@ -304,9 +223,7 @@ def _main_for_local_run(argv, arguments):
     realpath = os.path.realpath(__file__)
     site_utils_path = os.path.realpath(site_utils_path)
 
-    # If we are not running the sysroot version of script, perform
-    # a quickmerge if necessary and then re-execute
-    # the sysroot version of script with the same arguments.
+    # If we are not executing in the given path, relaunch there.
     if os.path.dirname(realpath) != site_utils_path:
         return perform_bootstrap_into_autotest_root(
                 arguments, autotest_path, argv)
@@ -332,20 +249,6 @@ def _main_for_local_run(argv, arguments):
                 job_retry=arguments.retry,
                 companion_hosts=arguments.companion_hosts)
 
-
-def _suite_arg_tests(argv):
-    """
-    Construct a list of tests to pass into suite_args.
-
-    This is passed in suite_args to run_suite for running a test in the
-    lab.
-
-    @param argv: Remote Script command line arguments.
-    """
-    arguments = parse_arguments(argv)
-    return arguments.tests
-
-
 def main(argv):
     """
     Entry point for test_that script.
@@ -359,7 +262,7 @@ def main(argv):
         print(('Invalid arguments. %s' % str(err)), file=sys.stderr)
         return 1
 
-    _main_for_local_run(argv, arguments)
+    _main_for_all_run(argv, arguments)
 
 
 if __name__ == '__main__':

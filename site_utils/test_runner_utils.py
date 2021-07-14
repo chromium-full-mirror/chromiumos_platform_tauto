@@ -117,62 +117,62 @@ def add_common_args(parser):
                         'added to ssh commands.')
 
 
-class LocalSuite(suite.Suite):
-    """Subclass of Suite with methods for running locally"""
+# class LocalSuite(suite.Suite):
+#     """Subclass of Suite with methods for running locally"""
 
-    def handle_local_result(self, job_id, results_dir, record):
-        """
-        Handle recording and/or retrying a completed job run locally.
+#     def handle_local_result(self, job_id, results_dir, record):
+#         """
+#         Handle recording and/or retrying a completed job run locally.
 
-        @param job_id: int ID of job
-        @param results_dir: absolute path where test results were stored.
-        @param record: callable that records job status
+#         @param job_id: int ID of job
+#         @param results_dir: absolute path where test results were stored.
+#         @param record: callable that records job status
 
-        @returns: new job_id if a job was scheduled for retry, None otherwise.
-        """
-        logging.debug('Parsing test results for job %s',job_id)
-        code = generate_report(results_dir, just_status_code=True)
-        if not self._retry_handler:
-            return None
-        logging.debug('Handling result of job %s',job_id)
-        logging.debug(self._retry_handler._retry_map)
-        if code == 0:
-            logging.debug('All tests for job %s succeeded, no retry', job_id)
-            if self._retry_handler.job_present(job_id):
-                self._retry_handler.set_attempted(job_id)
-            return None
+#         @returns: new job_id if a job was scheduled for retry, None otherwise.
+#         """
+#         logging.debug('Parsing test results for job %s',job_id)
+#         code = generate_report(results_dir, just_status_code=True)
+#         if not self._retry_handler:
+#             return None
+#         logging.debug('Handling result of job %s',job_id)
+#         logging.debug(self._retry_handler._retry_map)
+#         if code == 0:
+#             logging.debug('All tests for job %s succeeded, no retry', job_id)
+#             if self._retry_handler.job_present(job_id):
+#                 self._retry_handler.set_attempted(job_id)
+#             return None
 
-        new_job_id = None
-        go_ahead = (self._job_retry and
-                    self._retry_handler._should_retry_local_job(job_id))
-        if go_ahead:
-            new_job_id = self._retry_local_result(job_id, record)
-        return new_job_id
+#         new_job_id = None
+#         go_ahead = (self._job_retry and
+#                     self._retry_handler._should_retry_local_job(job_id))
+#         if go_ahead:
+#             new_job_id = self._retry_local_result(job_id, record)
+#         return new_job_id
 
-    def _retry_local_result(self, job_id, record):
-        """
-        Retry a test job by id.
+#     def _retry_local_result(self, job_id, record):
+#         """
+#         Retry a test job by id.
 
-        @param job_id: int ID of job
-        @param record: callable that records job status.
-                 prototype:
-                   record(base_job.status_log_entry)
+#         @param job_id: int ID of job
+#         @param record: callable that records job status.
+#                  prototype:
+#                    record(base_job.status_log_entry)
 
-        @returns: new job_id if a job was scheduled for retry, None otherwise.
-        """
-        test = self._jobs_to_tests[job_id]
-        logging.debug('Attempting to retry job %s, test %s', job_id, test.name)
-        test.fast = False
-        new_job = self._schedule_test(
-                record=record, test=test, retry_for=job_id)
-        if new_job:
-            return new_job.id
-        return None
+#         @returns: new job_id if a job was scheduled for retry, None otherwise.
+#         """
+#         test = self._jobs_to_tests[job_id]
+#         logging.debug('Attempting to retry job %s, test %s', job_id, test.name)
+#         test.fast = False
+#         new_job = self._schedule_test(
+#                 record=record, test=test, retry_for=job_id)
+#         if new_job:
+#             return new_job.id
+#         return None
 
-    def test_name_from_job(self, job_id):
-        """Find the name of the test run by a job with a given job ID."""
-        if self._jobs_to_tests[job_id]:
-            return self._jobs_to_tests[job_id].name
+#     def test_name_from_job(self, job_id):
+#         """Find the name of the test run by a job with a given job ID."""
+#         if self._jobs_to_tests[job_id]:
+# return self._jobs_to_tests[job_id].name
 
 
 def _run_autoserv(command, pretend=False):
