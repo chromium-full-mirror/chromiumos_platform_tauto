@@ -333,33 +333,6 @@ def _main_for_local_run(argv, arguments):
                 companion_hosts=arguments.companion_hosts)
 
 
-def _main_for_lab_run(argv, arguments):
-    """
-    Effective entry point for lab test_that runs.
-
-    @param argv: Script command line arguments.
-    @param arguments: Parsed command line arguments.
-    """
-    autotest_path = os.path.realpath(os.path.join(
-            os.path.dirname(os.path.realpath(__file__)),
-            '..',
-    ))
-    command = [os.path.join(autotest_path, 'site_utils',
-                            'run_suite.py'),
-               '--board=%s' % (arguments.board,),
-               '--build=%s' % (arguments.build,),
-               '--model=%s' % (arguments.model,),
-               '--suite_name=%s' % 'test_that_wrapper',
-               '--pool=%s' % (arguments.pool,),
-               '--max_runtime_mins=%s' % str(arguments.max_runtime_mins),
-               '--suite_args=%s'
-               % repr({'tests': _suite_arg_tests(argv)})]
-    if arguments.web:
-        command.extend(['--web=%s' % (arguments.web,)])
-    logging.info('About to start lab suite with command %s.', command)
-    return subprocess.call(command)
-
-
 def _suite_arg_tests(argv):
     """
     Construct a list of tests to pass into suite_args.
@@ -386,10 +359,7 @@ def main(argv):
         print(('Invalid arguments. %s' % str(err)), file=sys.stderr)
         return 1
 
-    if arguments.remote == ':lab:':
-        return _main_for_lab_run(remote_argv, arguments)
-    else:
-        return _main_for_local_run(argv, arguments)
+    _main_for_local_run(argv, arguments)
 
 
 if __name__ == '__main__':

@@ -27,7 +27,6 @@ from autotest_lib.client.common_lib import global_config
 
 from autotest_lib.server.cros.dynamic_suite import suite
 
-
 _CONFIG = global_config.global_config
 
 from autotest_lib.server import server_logging_config
@@ -414,6 +413,12 @@ def run_autoserv(pid_file_manager, results, parser):
                         # Ignore any error as the user may not have root
                         # permission to run sudo command.
                         pass
+                job.run(verify_job_repo_url=verify_job_repo_url,
+                        only_collect_crashinfo=collect_crashinfo,
+                        skip_crash_collection=skip_crash_collection,
+                        job_labels=job_labels,
+                        use_packaging=(not no_use_packaging))
+
         finally:
             job.close()
     except:
