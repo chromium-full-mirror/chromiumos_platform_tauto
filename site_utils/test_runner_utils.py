@@ -27,7 +27,7 @@ logging.basicConfig(level=logging.INFO)
 import common
 from autotest_lib.client.common_lib.cros import retry
 from autotest_lib.client.common_lib import logging_manager
-from autotest_lib.server.cros.dynamic_suite import suite, constants
+from autotest_lib.server.cros.dynamic_suite import constants
 from autotest_lib.server.hosts import factory
 from autotest_lib.server.hosts import file_store
 from autotest_lib.server.hosts import host_info
@@ -117,64 +117,6 @@ def add_common_args(parser):
                         'added to ssh commands.')
 
 
-# class LocalSuite(suite.Suite):
-#     """Subclass of Suite with methods for running locally"""
-
-#     def handle_local_result(self, job_id, results_dir, record):
-#         """
-#         Handle recording and/or retrying a completed job run locally.
-
-#         @param job_id: int ID of job
-#         @param results_dir: absolute path where test results were stored.
-#         @param record: callable that records job status
-
-#         @returns: new job_id if a job was scheduled for retry, None otherwise.
-#         """
-#         logging.debug('Parsing test results for job %s',job_id)
-#         code = generate_report(results_dir, just_status_code=True)
-#         if not self._retry_handler:
-#             return None
-#         logging.debug('Handling result of job %s',job_id)
-#         logging.debug(self._retry_handler._retry_map)
-#         if code == 0:
-#             logging.debug('All tests for job %s succeeded, no retry', job_id)
-#             if self._retry_handler.job_present(job_id):
-#                 self._retry_handler.set_attempted(job_id)
-#             return None
-
-#         new_job_id = None
-#         go_ahead = (self._job_retry and
-#                     self._retry_handler._should_retry_local_job(job_id))
-#         if go_ahead:
-#             new_job_id = self._retry_local_result(job_id, record)
-#         return new_job_id
-
-#     def _retry_local_result(self, job_id, record):
-#         """
-#         Retry a test job by id.
-
-#         @param job_id: int ID of job
-#         @param record: callable that records job status.
-#                  prototype:
-#                    record(base_job.status_log_entry)
-
-#         @returns: new job_id if a job was scheduled for retry, None otherwise.
-#         """
-#         test = self._jobs_to_tests[job_id]
-#         logging.debug('Attempting to retry job %s, test %s', job_id, test.name)
-#         test.fast = False
-#         new_job = self._schedule_test(
-#                 record=record, test=test, retry_for=job_id)
-#         if new_job:
-#             return new_job.id
-#         return None
-
-#     def test_name_from_job(self, job_id):
-#         """Find the name of the test run by a job with a given job ID."""
-#         if self._jobs_to_tests[job_id]:
-# return self._jobs_to_tests[job_id].name
-
-
 def _run_autoserv(command, pretend=False):
     """Run autoserv command.
 
@@ -206,53 +148,20 @@ def _run_autoserv(command, pretend=False):
     return returncode
 
 
-def run_provisioning_job(provision_label, host, info, autotest_path,
-                         results_directory, fast_mode,
-                         ssh_verbosity=0, ssh_options=None,
-                         pretend=False, autoserv_verbose=False):
-    """Shell out to autoserv to run provisioning job.
-
-    @param provision_label: Label to provision the machine to.
-    @param host: Hostname of DUT.
-    @param info: A host_info.HostInfo for the remote host.
-    @param autotest_path: Absolute path of autotest directory.
-    @param results_directory: Absolute path of directory to store results in.
-                              (results will be stored in subdirectory of this).
-    @param fast_mode: bool to use fast mode (disables slow autotest features).
-    @param ssh_verbosity: SSH verbosity level, passed along to autoserv_utils
-    @param ssh_options: Additional ssh options to be passed to autoserv_utils
-    @param pretend: If True, will print out autoserv commands rather than
-                    running them.
-    @param autoserv_verbose: If true, pass the --verbose flag to autoserv.
-
-    @returns: Absolute path of directory where results were stored.
-
-    """
-    # TODO(fdeng): When running against a local DUT, autoserv
-    # is still hitting the AFE in the lab.
-    # provision_QuickProvision checks the current build of DUT by
-    # retrieving build info from AFE. crosbug.com/295178
-    results_directory = os.path.join(results_directory, 'results-provision')
-    _write_host_info(results_directory, _HOST_INFO_SUBDIR, host, info)
-    command = autoserv_utils.autoserv_run_job_command(
-            os.path.join(autotest_path, 'server'),
-            machines=host, job=None, verbose=autoserv_verbose,
-            results_directory=results_directory,
-            fast_mode=fast_mode, ssh_verbosity=ssh_verbosity,
-            ssh_options=ssh_options,
-            extra_args=['--provision', '--job-labels', provision_label],
-            no_console_prefix=True,
-            host_info_subdir=_HOST_INFO_SUBDIR)
-    if _run_autoserv(command, pretend) != 0:
-        raise TestThatProvisioningError('Command returns non-zero code: %s ' %
-                                        command)
-    return results_directory
-
-
-def run_job(job, host, info, autotest_path, results_directory, fast_mode,
-            id_digits=1, ssh_verbosity=0, ssh_options=None,
-            args=None, pretend=False,
-            autoserv_verbose=False, companion_hosts=None):
+def run_job(test,
+            host,
+            info,
+            autotest_path,
+            results_directory,
+            fast_mode,
+            id_digits=1,
+            ssh_verbosity=0,
+            ssh_options=None,
+            args=None,
+            pretend=False,
+            autoserv_verbose=False,
+            companion_hosts=None,
+            n=1):
     """
     Shell out to autoserv to run an individual test job.
 
@@ -279,111 +188,36 @@ def run_job(job, host, info, autotest_path, results_directory, fast_mode,
     @returns: a tuple, return code of the job and absolute path of directory
               where results were stored.
     """
-    with tempfile.NamedTemporaryFile() as temp_file:
-        temp_file.write(job.control_file.encode())
-        temp_file.flush()
-        name_tail = job.name.split('/')[-1]
-        results_directory = os.path.join(results_directory,
-                                         'results-%0*d-%s' % (id_digits, job.id,
-                                                              name_tail))
-        # Drop experimental keyval in the keval file in the job result folder.
-        os.makedirs(results_directory)
-        utils.write_keyval(results_directory,
-                           {constants.JOB_EXPERIMENTAL_KEY: job.keyvals[
-                                   constants.JOB_EXPERIMENTAL_KEY]})
-        _write_host_info(results_directory, _HOST_INFO_SUBDIR, host, info)
-        extra_args = [temp_file.name]
-        if args:
-            extra_args.extend(['--args', args])
+    name_tail = test.split('/')[-1]
+    results_directory = os.path.join(
+            results_directory, 'results-%0*d-%s' % (id_digits, n, name_tail))
+    # Drop experimental keyval in the keval file in the job result folder.
+    os.makedirs(results_directory)
+    utils.write_keyval(results_directory,
+                       {constants.JOB_EXPERIMENTAL_KEY: False})
+    _write_host_info(results_directory, _HOST_INFO_SUBDIR, host, info)
+    extra_args = []
+    if args:
+        extra_args.extend(['--args', args])
 
-        command = autoserv_utils.autoserv_run_job_command(
-                os.path.join(autotest_path, 'server'),
-                machines=host, job=job, verbose=autoserv_verbose,
-                results_directory=results_directory,
-                fast_mode=fast_mode, ssh_verbosity=ssh_verbosity,
-                ssh_options=ssh_options,
-                extra_args=extra_args,
-                no_console_prefix=True,
-                use_packaging=False,
-                host_attributes=info.attributes,
-                host_info_subdir=_HOST_INFO_SUBDIR,
-                companion_hosts=companion_hosts)
+    command = autoserv_utils.autoserv_run_job_command(
+            os.path.join(autotest_path, 'server'),
+            machines=host,
+            control_name=test,
+            verbose=autoserv_verbose,
+            results_directory=results_directory,
+            fast_mode=fast_mode,
+            ssh_verbosity=ssh_verbosity,
+            ssh_options=ssh_options,
+            extra_args=extra_args,
+            no_console_prefix=True,
+            use_packaging=False,
+            host_attributes=info.attributes,
+            host_info_subdir=_HOST_INFO_SUBDIR,
+            companion_hosts=companion_hosts)
 
-        code = _run_autoserv(command, pretend)
-        return code, results_directory
-
-
-def setup_local_afe():
-    """
-    Setup a local afe database and return a direct_afe object to access it.
-
-    @returns: A autotest_lib.frontend.afe.direct_afe instance.
-    """
-    # This import statement is delayed until now rather than running at
-    # module load time, because it kicks off a local sqlite :memory: backed
-    # database, and we don't need that unless we are doing a local run.
-    from autotest_lib.frontend import setup_django_lite_environment
-    from autotest_lib.frontend.afe import direct_afe
-    return direct_afe.directAFE()
-
-
-def get_predicate_for_test_arg(test):
-    """
-    Gets a suite predicte function for a given command-line argument.
-
-    @param test: String. An individual TEST command line argument, e.g.
-                         'login_CryptohomeMounted' or 'suite:smoke'
-    @returns: A (predicate, string) tuple with the necessary suite
-              predicate, and a description string of the suite that
-              this predicate will produce.
-    """
-    suitematch = re.match(_SUITE_REGEX, test)
-    name_pattern_match = re.match(r'e:(.*)', test)
-    file_pattern_match = re.match(r'f:(.*)', test)
-    if suitematch:
-        suitename = suitematch.group(1)
-        return (suite.name_in_tag_predicate(suitename),
-                'suite named %s' % suitename)
-    if name_pattern_match:
-        pattern = '^%s$' % name_pattern_match.group(1)
-        return (suite.test_name_matches_pattern_predicate(pattern),
-                'suite to match name pattern %s' % pattern)
-    if file_pattern_match:
-        pattern = '^%s$' % file_pattern_match.group(1)
-        return (suite.test_file_matches_pattern_predicate(pattern),
-                'suite to match file name pattern %s' % pattern)
-    return (suite.test_name_equals_predicate(test),
-            'job named %s' % test)
-
-
-def get_predicate_for_possible_test_arg(test):
-    """
-    Gets a suite predicte function to calculate the similarity of given test
-    and possible tests.
-
-    @param test: String. An individual TEST command line argument, e.g.
-                         'login_CryptohomeMounted' or 'suite:smoke'
-    @returns: A (predicate, string) tuple with the necessary suite
-              predicate, and a description string of the suite that
-              this predicate will produce.
-    """
-    suitematch = re.match(_SUITE_REGEX, test)
-    name_pattern_match = re.match(r'e:(.*)', test)
-    file_pattern_match = re.match(r'f:(.*)', test)
-    if suitematch:
-        suitename = suitematch.group(1)
-        return (suite.name_in_tag_similarity_predicate(suitename),
-                'suite name similar to %s' % suitename)
-    if name_pattern_match:
-        pattern = '^%s$' % name_pattern_match.group(1)
-        return (suite.test_name_similarity_predicate(pattern),
-                'job name similar to %s' % pattern)
-    if file_pattern_match:
-        pattern = '^%s$' % file_pattern_match.group(1)
-        return (suite.test_file_similarity_predicate(pattern),
-                'suite to match file name similar to %s' % pattern)
-    return (suite.test_name_similarity_predicate(test),
-            'job name similar to %s' % test)
+    code = _run_autoserv(command, pretend)
+    return code, results_directory
 
 
 def add_ssh_identity(temp_directory, ssh_private_key=TEST_KEY_PATH):
@@ -427,31 +261,6 @@ def _auto_detect_labels(remote):
     labels_to_create = [label for label in cros_host.get_labels()
                         if not label.startswith(constants.BOARD_PREFIX)]
     return labels_to_create
-
-
-def get_all_control_files(test, autotest_path):
-    """Get all control files for specified test in the given autotest_path.
-
-    @param test: name of the test or suite to fetch
-    @praram autotest_path:  Absolute path of autotest installed in sysroot
-    """
-    (predicate, description) = get_predicate_for_test_arg(test)
-    logging.info('Fetching suite for %s...', description)
-    return get_control_files(autotest_path=autotest_path, pred=predicate)
-
-
-def get_possible_tests(test, autotest_path):
-    fs_getter = suite.create_fs_getter(autotest_path)
-
-    (similarity_predicate,
-     similarity_description) = (get_predicate_for_possible_test_arg(test))
-
-    logging.error('No test found, searching for possible tests with %s',
-                  similarity_description)
-    possible_tests = suite.find_possible_tests(fs_getter, similarity_predicate)
-    raise SystemExit('Found no tests. Check your suite name, test name, '
-                     'or test matching wildcard.\nDid you mean any of '
-                     'following tests?\n  %s' % '\n  '.join(possible_tests))
 
 
 def perform_local_run(autotest_path,
@@ -523,49 +332,41 @@ def perform_local_run(autotest_path,
     info = host_info.HostInfo(labels, host_attributes)
 
     job_queue = []
-    test_num = 0
 
     if iterations > 1:
         logging.info("Scheduling for %s iterations", iterations)
+
     for _ in range(iterations):
         for test in tests:
-            ctrl_files = get_all_control_files(test, autotest_path)
-            if len(ctrl_files) == 0:
-                get_possible_tests(test, autotest_path)
-            for control in ctrl_files:
-                test_num += 1
-                job = SimpleJob(name="adhoc/{}".format(control.name),
-                                owner='autotest_system',
-                                test_num=test_num)
-                job.set_control_file(control)
-                if ignore_deps:
-                    job_queue.append(job)
-                elif job.deps_satisfied(labels):
-                    job_queue.append(job)
+            suitematch = re.match(r'suite:(.*)', test)
+            if suitematch:
+                logging.warning("Suites currently not support in Tauto")
+                continue
+            job_queue.append(test)
 
     codes = []
     job_id_digits = 0
-    for job in job_queue:
+    for i, job in enumerate(job_queue):
         logging.info('%s jobs in job queue', len(job_queue))
+        i += 1
         # could also math.log10... but for a single conversion, not worth.
-        job_id_digits = len(str(job.id))
-        logging.debug('Running job %s of test %s', job.id, (job.name))
+        job_id_digits = len(str(i))
+        logging.debug('Running job %s of test %s', i, (test))
 
-        code, abs_dir = run_job(
-                job,
-                remote,
-                info,
-                autotest_path,
-                results_directory,
-                fast_mode,
-                job_id_digits,
-                ssh_verbosity,
-                ssh_options,
-                args,
-                pretend,
-                autoserv_verbose,
-                companion_hosts
-        )
+        code, abs_dir = run_job(test,
+                                remote,
+                                info,
+                                autotest_path,
+                                results_directory,
+                                fast_mode,
+                                job_id_digits,
+                                ssh_verbosity,
+                                ssh_options,
+                                args,
+                                pretend,
+                                autoserv_verbose,
+                                companion_hosts,
+                                n=i)
         codes.append(code)
         logging.debug("Code: %s, Results in %s", code, abs_dir)
 
@@ -827,37 +628,3 @@ def _write_host_info(results_dir, host_info_subdir, hostname, info):
     os.makedirs(d)
     store = file_store.FileStore(os.path.join(d, '%s.store' % hostname))
     store.commit(info)
-
-
-class SimpleJob(object):
-    """
-    A Simple job for running autotests without an AFE.
-
-    The goal here is to remove the deps to frontend/afe, and their dependent
-    libs. Autotests will be run via 2 methods going forward: Skylab world, and
-    test_that. Skylab invokes autoserv directly, bypassing all of this.
-    test_that is a CLI, not a UI, and should be split free of the AFE libs.
-    """
-
-    def __init__(self, owner, name, control_type='client', test_num=1):
-        self.owner = owner
-        self.name = name
-        self.control_type = control_type
-        self.id = test_num
-        self.keyvals = {'experimental': False}
-        self.dependencies = []
-
-    def set_control_file(self, control):
-        self.control_file = control.text
-        self.control_type = control.test_type.capitalize()
-        if hasattr(control, 'dependencies'):
-            self.dependencies = set(control.dependencies)
-
-    def deps_satisfied(self, labels):
-        """Verify the deps for this job are satisfied on the given labels"""
-        return self.dependencies.issubset(labels)
-
-
-def get_control_files(autotest_path, pred):
-    cf_getter = suite.create_fs_getter(autotest_path)
-    return list(suite.find_and_parse_tests(cf_getter, pred))

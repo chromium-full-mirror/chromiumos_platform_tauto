@@ -24,6 +24,7 @@ import common
 
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.common_lib import global_config
+from autotest_lib.client.common_lib import control_data
 
 from autotest_lib.server.cros.dynamic_suite import suite
 
@@ -46,6 +47,11 @@ STOP_SERVOD_CMD = 'sudo stop servod'
 
 _AUTOTEST_ROOT = os.path.realpath(os.path.join(os.path.dirname(__file__), '..'))
 _CONTROL_FILE_FROM_CONTROL_NAME = 'control.from_control_name'
+
+
+def find_if_client(control):
+    test = control_data.parse_control(control)
+    return test.test_type.capitalize() == "Client"
 
 
 def log_alarm(signum, frame):
@@ -176,7 +182,8 @@ def _control_path_on_disk(control_name):
     cf_getter = suite.create_fs_getter(_AUTOTEST_ROOT)
     control_name_predicate = suite.test_name_matches_pattern_predicate(
             '^%s$' % control_name)
-    tests = suite.find_and_parse_tests(cf_getter, control_name_predicate)
+    tests = suite.find_and_parse_tests(cf_getter, control_name_predicate,
+                                       forgiving_parser=False)
     if not tests:
         raise error.AutoservError(
                 'Failed to find any control files with NAME %s' % control_name)
@@ -316,6 +323,9 @@ def run_autoserv(pid_file_manager, results, parser):
             parser.parser.error("Missing argument: control file")
         control = None
 
+    client = find_if_client(control)
+    server = not client
+
     if ssh_verbosity > 0:
         # ssh_verbosity is an integer between 0 and 3, inclusive
         ssh_verbosity_flag = '-' + 'v' * ssh_verbosity
@@ -337,6 +347,7 @@ def run_autoserv(pid_file_manager, results, parser):
       logging.debug("Parser.options is %r", parser.options)
     except AttributeError:
       logging.debug("No Parser.options.")
+
     job_kwargs = {
             'control': control,
             'args': parser.args[1:],
@@ -467,7 +478,6 @@ def main():
             no_console_prefix=parser.options.no_console_prefix)
 
     logging.debug('autoserv is running in drone %s.', socket.gethostname())
-    logging.debug('autoserv environment: %r', os.environ)
     logging.debug('autoserv command was: %s', ' '.join(sys.argv))
     logging.debug('autoserv parsed options: %s', parser.options)
 

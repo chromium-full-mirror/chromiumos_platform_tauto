@@ -34,7 +34,8 @@ def autoserv_run_job_command(autoserv_directory,
                              host_attributes=None,
                              use_virtualenv=False,
                              host_info_subdir='',
-                             companion_hosts=None):
+                             companion_hosts=None,
+                             control_name=None):
     """
     Construct an autoserv command from a job or host queue entry.
 
@@ -140,6 +141,11 @@ def autoserv_run_job_command(autoserv_directory,
                 command.append('-c')
             elif control_type_value == control_data.CONTROL_TYPE.SERVER:
                 command.append('-s')
+    else:
+        command += ['-l', control_name]
+
+    if control_name:
+        command += ['--control-name', control_name]
 
     if host_attributes:
         command += ['--host_attributes', repr(host_attributes)]

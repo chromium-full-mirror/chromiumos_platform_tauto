@@ -289,15 +289,13 @@ def parse_cf_text_process(data):
 
     try:
         found_test = parse_cf_text(path, text)
-    except control_data.ControlVariableException as e:
+    except (control_data.ControlVariableException, ValueError) as e:
         if not forgiving_error:
             msg = "Failed parsing %s\n%s" % (path, e)
-            raise control_data.ControlVariableException(msg)
+            raise control_data.ControlVariableException(msg) from None
         logging.warning("Skipping %s\n%s", path, e)
     except Exception as e:
-        logging.error("Bad %s\n%s", path, e)
-        import traceback
-        logging.error(traceback.format_exc())
+        logging.error("Bad %s\n%s %s", path, e, type(e))
     else:
         return (path, found_test)
 
