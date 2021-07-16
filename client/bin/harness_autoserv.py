@@ -80,7 +80,7 @@ class harness_autoserv(harness.harness):
             # sent status messages with AUTOTEST_STATUS:tag:message
             msg = ('AUTOTEST_STATUS:%s:%s\n' % (tag, line))
             self.status.write(msg)
-
+            self.status.flush()
 
     def fetch_package(self, pkg_name, dest_path):
         """Request a package from the remote autoserv.
