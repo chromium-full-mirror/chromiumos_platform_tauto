@@ -1,9 +1,10 @@
-#!/usr/bin/python2
+#!/usr/bin/python3
 
 __author__ = "kerl@google.com, gwendal@google.com (Gwendal Grignou)"
 
 import io
 import mock
+import six
 import unittest
 
 from autotest_lib.client.bin import utils
@@ -27,7 +28,10 @@ class TestUtils(unittest.TestCase):
 
     def fake_open(self, path):
         # Use BytesIO instead of StringIO to support with statements.
-        return io.BytesIO(bytes(self.fake_file_text))
+        if six.PY2:
+            return io.BytesIO(bytes(self.fake_file_text))
+        else:
+            return io.StringIO(self.fake_file_text)
 
     def test_concat_partition(self):
         self.assertEquals("nvme0n1p3", utils.concat_partition("nvme0n1", 3))
