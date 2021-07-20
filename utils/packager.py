@@ -1,4 +1,4 @@
-#!/usr/bin/python2 -u
+#!/usr/bin/python3 -u
 
 """
 Utility to upload or remove the packages from the packages repository.
@@ -226,7 +226,7 @@ def tar_packages(pkgmgr, pkg_type, pkg_names, src_dir, temp_dir):
         # the effort.
         tarball_path = os.path.join(pkg_dir, pkg_name)
         if os.path.exists(tarball_path):
-          print("tar_packages: Tarball %s already exists" % tarball_path)
+            print("tar_packages: Tarball %s already exists" % tarball_path)
         else:
             tarball_path = pkgmgr.tar_package(pkg_name, pkg_dir,
                                               temp_dir, exclude_string_tar)
