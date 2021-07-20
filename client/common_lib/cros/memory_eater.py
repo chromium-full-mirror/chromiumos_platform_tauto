@@ -1,4 +1,4 @@
-#!/usr/bin/python2
+#!/usr/bin/python3
 # Copyright 2018 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -140,7 +140,7 @@ class _Timer(object):
     def check_timeout(self):
         """Raise TimeoutException if timeout happens."""
         if not self.timeout:
-          return
+            return
         time_delta = time.time() - self.start_time
         if time_delta > self.timeout:
             err_message = '%s timeout after %s seconds' % (self.des, time_delta)
