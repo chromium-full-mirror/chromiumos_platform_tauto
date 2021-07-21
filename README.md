@@ -8,51 +8,49 @@ Autotest is composed of a number of modules that will help you to do stand alone
 tests or setup a fully automated test grid, depending on what you are up to.
 A non extensive list of functionality is:
 
-* A body of code to run tests on the device under test.  In this setup, test
-  logic executes on the machine being tested, and results are written to files
-  for later collection from a development machine or lab infrastructure.
 
-* A body of code to run tests against a remote device under test.  In this
-  setup, test logic executes on a development machine or piece of lab
-  infrastructure, and the device under test is controlled remotely via
-  SSH/adb/some combination of the above.
+## Run some tauto tests
 
-* Developer tools to execute one or more tests.  `test_that` for Chrome OS and
-  `test_droid` for Android allow developers to run tests against a device
-  connected to their development machine on their desk.  These tools are written
-  so that the same test logic that runs in the lab will run at their desk,
-  reducing the number of configurations under which tests are run.
+TODO: formalize/finish this.
 
-* Lab infrastructure to automate the running of tests.  This infrastructure is
-  capable of managing and running tests against thousands of devices in various
-  lab environments. This includes code for both synchronous and asynchronous
-  scheduling of tests.  Tests are run against this hardware daily to validate
-  every build of Chrome OS.
+Currently, Tauto only has 1 test to verify basic test-harness stability. This
+test is a client side test, dummy_Pass. There are no server side tests (yet).
 
-* Infrastructure to set up miniature replicas of a full lab.  A full lab does
-  entail a certain amount of administrative work which isn't appropriate for
-  a work group interested in automated tests against a small set of devices.
-  Since this scale is common during device bringup, a special setup, called
-  Moblab, allows a natural progressing from desk -> mini lab -> full lab.
+To work in Tauto, the only requirement is a reasonably up-to-date chroot, and a
+working dut (test build) on a network your chroot can ssh with (lab network).
 
-## Run some autotests
+To run a test:
+```bash
+(inside)
+cd ~/trunk/src/platform/tauto/
+export tauto_dir=$(pwd)
+cd site_utils
+ssh-agent python3 test_that.py <DUT IP> dummy_Pass --autotest_dir=${tauto_dir} --py_version=3
+```
 
-See the guides to `test_that` and `test_droid`:
+*Note:* There is a TODO to clean this up to a cleaner cmd, but for now it should work.
 
-[test\_droid Basic Usage](docs/test-droid.md)
 
-[test\_that Basic Usage](docs/test-that.md)
+If this works, you should see something like this:
+```bash
+---------------------------------------------------------------------------
+/tmp/test_that_results_ib6w8qq6/results-1-dummy_Pass            [  PASSED  ]
+/tmp/test_that_results_ib6w8qq6/results-1-dummy_Pass/dummy_Pass [  PASSED  ]
+---------------------------------------------------------------------------
+Total PASS: 2/2 (100%)
 
-## Write some autotests
+```
 
-See the best practices guide, existing tests, and comments in the code.
+*Note2:* For some TBD reason, this test is a little slower than it should be,
+but after the first run, all subsiquent should be <20 seconds or so.
 
-[Autotest Best Practices](docs/best-practices.md)
+## Write some tauto tests
 
+TODO
 
 ## Grabbing the latest source
 
-`git clone https://chromium.googlesource.com/chromiumos/third_party/autotest`
+TODO
 
 ## Hacking and submitting patches
 
@@ -62,9 +60,14 @@ See the coding style guide for guidance on submitting patches.
 
 ## Pre-upload hook dependencies
 
-You need to run `utils/build_externals.py` to set up the dependencies
-for pre-upload hook tests.
+TODO
 
-## Setting up Lucifer
+## Checking in code
 
-[Setting up Lucifer](docs/lucifer-setup.md)
+Right now its not expected that all the Tauto unittest's work (this note will
+be removed when they do). Thus, running those prior to checkin is not
+expected. However, the `dummy_Pass` test **must** work in python 3 prior to
+a checkin. Please do not check in without running this test. It only takes
+~10-20 seconds, and saves lots of headache of a harness breaking, as there is
+no CQ-coverage ATM.
+Additionally, as there no CQ coverage, once you get an OWNER +2, just submit.
