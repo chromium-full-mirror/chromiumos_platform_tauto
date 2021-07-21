@@ -16,8 +16,6 @@ import re
 import common
 
 from autotest_lib.client.bin import utils
-from autotest_lib.client.common_lib import global_config
-from autotest_lib.client.cros.audio import cras_utils
 from autotest_lib.server.cros.dynamic_suite import constants as ds_constants
 from autotest_lib.server.hosts import base_label
 from autotest_lib.server.hosts import common_label
@@ -238,6 +236,33 @@ class AudioLoopbackDongleLabel(base_label.BaseLabel):
         # produces.
         return self._host_run_exists(host)
 
+    def _node_type_is_plugged(self, node_type, nodes_info):
+        """Determine if there is any node of node_type plugged.
+
+        This method is used in the AudioLoopbackDongleLabel class, where the
+        call is executed on autotest server. Use get_cras_nodes instead if
+        the call can be executed on Cros device.
+
+        Since Cras only reports the plugged node in GetNodes, we can
+        parse the return value to see if there is any node with the given type.
+        For example, if INTERNAL_MIC is of intereset, the pattern we are
+        looking for is:
+
+        dict entry(
+           string "Type"
+           variant             string "INTERNAL_MIC"
+        )
+
+        @param node_type: A str representing node type defined in CRAS_NODE_TYPES.
+        @param nodes_info: A str containing output of command get_nodes_cmd.
+
+        @returns: True if there is any node of node_type plugged. False otherwise.
+
+        """
+        match = re.search(r'string "Type"\s+variant\s+string "%s"' % node_type,
+                          nodes_info)
+        return True if match else False
+
     def _cached_exists(self, host):
         """Get the state of AudioLoopbackDongle in the data store"""
         info = host.host_info_store.get()
@@ -249,10 +274,12 @@ class AudioLoopbackDongleLabel(base_label.BaseLabel):
     def _host_run_exists(self, host):
         """Detect presence of audio_loopback_dongle by physically
         running a command on the DUT."""
-        nodes_info = host.run(command=cras_utils.get_cras_nodes_cmd(),
-                              ignore_status=True).stdout
-        if (cras_utils.node_type_is_plugged('HEADPHONE', nodes_info) and
-            cras_utils.node_type_is_plugged('MIC', nodes_info)):
+        cras_cmd = ('dbus-send --system --type=method_call --print-reply '
+                    '--dest=org.chromium.cras /org/chromium/cras '
+                    'org.chromium.cras.Control.GetNodes')
+        nodes_info = host.run(command=cras_cmd, ignore_status=True).stdout
+        if (self._node_type_is_plugged('HEADPHONE', nodes_info)
+                    and self._node_type_is_plugged('MIC', nodes_info)):
             return True
         return False
 
