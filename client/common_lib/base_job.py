@@ -859,7 +859,6 @@ class base_job(object):
 
         # various client-specific directories
         self._bindir = readonly_dir(self.clientdir, 'bin')
-        self._profdir = readonly_dir(self.clientdir, 'profilers')
         self._pkgdir = readwrite_dir(self.clientdir, 'packages')
         self._toolsdir = readonly_dir(self.clientdir, 'tools')
 
