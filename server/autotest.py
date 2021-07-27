@@ -31,12 +31,6 @@ import six
 from six.moves import map
 
 
-try:
-    from autotest_lib.utils.frozen_chromite.lib import metrics
-except ImportError:
-    metrics = client_utils.metrics_mock
-
-
 # This is assumed to be the value by tests, do not change it.
 OFFLOAD_ENVVAR = "SYNCHRONOUS_OFFLOAD_DIR"
 
@@ -187,9 +181,6 @@ class Autotest(installable_object.InstallableObject):
                 return path
             except error.AutoservRunError:
                 logging.debug('Failed to create %s', path)
-        metrics.Counter(
-            'chromeos/autotest/errors/no_autotest_install_path').increment(
-                fields={'dut_host_name': host.hostname})
         raise error.AutoservInstallError(
                 'Unable to find a place to install Autotest; tried %s' %
                 ', '.join(client_autodir_paths))
@@ -1086,8 +1077,6 @@ class _Run(object):
         # TODO(crbug.com/684311) The claim is that section is never more than 0
         # in pratice. After validating for a week or so, delete all support of
         # multiple sections.
-        metrics.Counter('chromeos/autotest/autotest/sections').increment(
-                fields={'is_first_section': (section == 0)})
         logging.info("Executing %s/bin/autotest %s/control phase %d",
                      self.autodir, self.autodir, section)
 
@@ -1274,13 +1263,10 @@ class log_collector(object):
             result_tools_runner.run_on_client(
                     self.host, self.client_results_dir)
 
-            with metrics.SecondsTimer(
-                    'chromeos/autotest/job/log_collection_duration',
-                    fields={'dut_host_name': self.host.hostname}):
-                self.host.get_file(
-                        self.client_results_dir + '/',
-                        self.server_results_dir,
-                        preserve_symlinks=True)
+            self.host.get_file(
+                    self.client_results_dir + '/',
+                    self.server_results_dir,
+                    preserve_symlinks=True)
         except Exception:
             # well, don't stop running just because we couldn't get logs
             e_msg = "Unexpected error copying test result logs, continuing ..."

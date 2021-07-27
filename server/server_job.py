@@ -19,7 +19,6 @@ from __future__ import print_function
 import errno
 import fcntl
 import getpass
-import itertools
 import logging
 import os
 import pickle
@@ -60,11 +59,6 @@ from autotest_lib.server.hosts import host_info
 from autotest_lib.server.hosts import ssh_multiplex
 
 from six.moves import zip
-
-try:
-    from autotest_lib.utils.frozen_chromite.lib import metrics
-except ImportError:
-    metrics = utils.metrics_mock
 
 
 def _control_segment_path(name):
@@ -691,6 +685,8 @@ class server_job(base_job.base_job):
 
         # TODO(ayatane): Copied from tko/parse.py.  Needs extensive refactor to
         # make code reuse plausible.
+        # TODO (dbeckett): address the todo above, also, this will likely need
+        # to be fixed prior to tauto rollout, as tko/parsers are gone.
         job_keyval = tko_models.job.read_keyval(path)
         status_version = job_keyval.get("status_version", 0)
 
@@ -804,12 +800,9 @@ class server_job(base_job.base_job):
         try:
             try:
                 if not self.fast:
-                    with metrics.SecondsTimer(
-                            'chromeos/autotest/job/get_network_stats',
-                            fields = {'stage': 'start'}):
-                        namespace['network_stats_label'] = 'at-start'
-                        self._execute_code(GET_NETWORK_STATS_CONTROL_FILE,
-                                           namespace)
+                    namespace['network_stats_label'] = 'at-start'
+                    self._execute_code(GET_NETWORK_STATS_CONTROL_FILE,
+                                       namespace)
 
                 if only_collect_crashinfo:
                     return
@@ -889,25 +882,20 @@ class server_job(base_job.base_job):
                     logging.info('Skipping crash dump/info collection '
                                  'as requested.')
                 else:
-                    with metrics.SecondsTimer(
-                            'chromeos/autotest/job/collect_crashinfo'):
-                        namespace['test_start_time'] = test_start_time
-                        # Remove crash files for passing tests.
-                        # TODO(ayatane): Tests that create crash files should be
-                        # reported.
-                        namespace['has_failed_tests'] = self._has_failed_tests()
-                        self._collect_crashes(namespace, collect_crashinfo)
+                    namespace['test_start_time'] = test_start_time
+                    # Remove crash files for passing tests.
+                    # TODO(ayatane): Tests that create crash files should be
+                    # reported.
+                    namespace['has_failed_tests'] = self._has_failed_tests()
+                    self._collect_crashes(namespace, collect_crashinfo)
             self.disable_external_logging()
             if self._uncollected_log_file and created_uncollected_logs:
                 os.remove(self._uncollected_log_file)
 
             if not self.fast:
-                with metrics.SecondsTimer(
-                        'chromeos/autotest/job/get_network_stats',
-                        fields = {'stage': 'end'}):
-                    namespace['network_stats_label'] = 'at-end'
-                    self._execute_code(GET_NETWORK_STATS_CONTROL_FILE,
-                                       namespace)
+                namespace['network_stats_label'] = 'at-end'
+                self._execute_code(GET_NETWORK_STATS_CONTROL_FILE,
+                                   namespace)
 
     def _server_offload_dir_path(self):
         return os.path.join(self.resultdir, self._sync_offload_dir)

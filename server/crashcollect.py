@@ -15,11 +15,6 @@ from autotest_lib.client.common_lib import global_config
 from autotest_lib.client.cros import constants
 from autotest_lib.server import utils
 
-try:
-    from autotest_lib.utils.frozen_chromite.lib import metrics
-except ImportError:
-    metrics = utils.metrics_mock
-
 
 # The amortized max filesize to collect.  For example, if _MAX_FILESIZE is 10
 # then we would collect a file with size 20 half the time, and a file with size
@@ -202,14 +197,10 @@ get_host_infodir = utils.import_site_function(
     lambda host: None)
 
 
-@metrics.SecondsTimerDecorator(
-        'chromeos/autotest/autoserv/get_crashdumps_duration')
 def get_crashdumps(host, test_start_time):
     get_site_crashdumps(host, test_start_time)
 
 
-@metrics.SecondsTimerDecorator(
-        'chromeos/autotest/autoserv/get_crashinfo_duration')
 def get_crashinfo(host, test_start_time):
     logging.info("Collecting crash information...")
 
@@ -270,8 +261,6 @@ def wait_for_machine_to_recover(host, hours_to_wait=HOURS_TO_WAIT):
     logging.info("Waiting %s hours for %s to come up (%s)",
                  hours_to_wait, host.hostname, current_time)
     if not host.wait_up(timeout=hours_to_wait * 3600):
-        (metrics.Counter('chromeos/autotest/errors/collect_crashinfo_timeout')
-         .increment())
         logging.warning("%s down, unable to collect crash info",
                         host.hostname)
         return False

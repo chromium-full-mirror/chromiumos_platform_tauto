@@ -20,15 +20,6 @@ from autotest_lib.server import autotest
 from autotest_lib.server.cros.dynamic_suite import constants as ds_constants
 from autotest_lib.server.cros.dynamic_suite import tools
 
-try:
-    from autotest_lib.utils.frozen_chromite.lib import metrics
-except ImportError:
-    metrics = utils.metrics_mock
-
-
-def _metric_name(base_name):
-    return 'chromeos/autotest/provision/' + base_name
-
 
 _QUICK_PROVISION_SCRIPT = 'quick-provision'
 
@@ -368,11 +359,6 @@ class ChromiumOSProvisioner(object):
         command = '%s --noreboot %s %s' % (provision_command, image_name,
                                            gs_cache_url)
         self._run(command)
-        metrics.Counter(
-                _metric_name('quick_provision')).increment(fields={
-                        'devserver': devserver_name,
-                        'gs_cache': True
-                })
 
     def _quick_provision_with_devserver(self, provision_command,
                                         devserver_name, image_name):
@@ -398,11 +384,6 @@ class ChromiumOSProvisioner(object):
         command = '%s --noreboot %s %s' % (provision_command, image_name,
                                            static_url)
         self._run(command)
-        metrics.Counter(
-                _metric_name('quick_provision')).increment(fields={
-                        'devserver': devserver_name,
-                        'gs_cache': False
-                })
 
     def _install_update(self):
         """Install an updating using the `quick-provision` script.
@@ -507,8 +488,6 @@ class ChromiumOSProvisioner(object):
             `attributes` is new attributes to be applied to the DUT.
         """
         server_name = dev_server.get_resolved_hostname(self.update_url)
-        metrics.Counter(_metric_name('install')).increment(
-                fields={'devserver': server_name})
 
         try:
             self._prepare_host()

@@ -35,10 +35,6 @@ from autotest_lib.client.common_lib import utils
 from autotest_lib.tko import db
 from six.moves import zip
 
-try:
-    from autotest_lib.utils.frozen_chromite.lib import metrics
-except ImportError:
-    metrics = utils.metrics_mock
 
 try:
     from autotest_lib.server.site_common import site_utils as server_utils
@@ -136,8 +132,6 @@ class TKO(RpcClient):
         self._db = None
 
 
-    @metrics.SecondsTimerDecorator(
-            'chromeos/autotest/tko/get_job_status_duration')
     def get_job_test_statuses_from_db(self, job_id):
         """Get job test statuses from the database.
 

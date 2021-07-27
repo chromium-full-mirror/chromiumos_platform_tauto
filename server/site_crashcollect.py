@@ -14,11 +14,6 @@ from autotest_lib.server.cros.dynamic_suite.constants import JOB_BUILD_KEY
 from autotest_lib.server.crashcollect import collect_log_file
 from autotest_lib.server import utils
 
-try:
-    from autotest_lib.utils.frozen_chromite.lib import metrics
-except ImportError:
-    metrics = client_utils.metrics_mock
-
 
 def generate_minidump_stacktrace(minidump_path):
     """
@@ -47,13 +42,8 @@ def _resolve_crashserver():
     crashserver_name = dev_server.get_least_loaded_devserver(
             devserver_type=dev_server.CrashServer)
     if not crashserver_name:
-        metrics.Counter('chromeos/autotest/crashcollect/could_not_resolve'
-                        ).increment()
         raise dev_server.DevServerException(
                 'No crash server has the capacity to symbolicate the dump.')
-    else:
-        metrics.Counter('chromeos/autotest/crashcollect/resolved'
-                        ).increment(fields={'crash_server': crashserver_name})
     return crashserver_name
 
 
@@ -78,11 +68,8 @@ def _symbolicate_minidump_with_devserver(minidump_path, resultdir,
 
     devserver = dev_server.CrashServer(crashserver_name)
 
-    with metrics.SecondsTimer(
-            'chromeos/autotest/crashcollect/symbolicate_duration',
-            fields={'crash_server': crashserver_name}):
-        trace_text = devserver.symbolicate_dump(minidump_path,
-                                                keyvals[JOB_BUILD_KEY])
+    trace_text = devserver.symbolicate_dump(minidump_path,
+                                            keyvals[JOB_BUILD_KEY])
 
     if not trace_text:
         raise dev_server.DevServerException('Unknown error!!')
@@ -117,9 +104,6 @@ def generate_stacktrace_for_file(minidump, host_resultdir):
         if is_timeout:
             logging.info('Generating stack trace timed out for dump %s',
                          minidump)
-            metrics.Counter(
-                    'chromeos/autotest/crashcollect/symbolicate_timed_out'
-            ).increment(fields={'crash_server': crashserver_name})
         else:
             logging.info('Generated stack trace for dump %s', minidump)
             return

@@ -38,11 +38,6 @@ from autotest_lib.server.cros import provision
 from autotest_lib.server.cros.dynamic_suite import constants
 from autotest_lib.server.cros.dynamic_suite import job_status
 
-try:
-    from autotest_lib.utils.frozen_chromite.lib import metrics
-except ImportError:
-    metrics = utils.metrics_mock
-
 
 CONFIG = global_config.global_config
 
@@ -72,8 +67,7 @@ ANDROID_BOARD_TO_TARGET_MAP = {
         'gm4g_sprout': 'seed_l8150',
         'bat': 'bat_land'
         }
-# Prefix for the metrics name for result size information.
-RESULT_METRICS_PREFIX = 'chromeos/autotest/result_collection/'
+
 
 class TestLabException(Exception):
     """Exception raised when the Test Lab blocks a test or suite."""
@@ -837,33 +831,6 @@ def _get_default_size_info(path):
             result_throttled=False)
 
 
-def _report_result_size_metrics(result_size_info):
-    """Report result sizes information to metrics.
-
-    @param result_size_info: A ResultSizeInfo namedtuple containing information
-            of test result sizes.
-    """
-    fields = {'result_throttled' : result_size_info.result_throttled}
-    metrics.Counter(RESULT_METRICS_PREFIX + 'client_result_collected_KB',
-                    description='The total size (in KB) of test results '
-                    'collected from test device. Set to be the total size of '
-                    'the given path.'
-                    ).increment_by(result_size_info.client_result_collected_KB,
-                                   fields=fields)
-    metrics.Counter(RESULT_METRICS_PREFIX + 'original_result_total_KB',
-                    description='The original size (in KB) of test results '
-                    'before being trimmed.'
-                    ).increment_by(result_size_info.original_result_total_KB,
-                                   fields=fields)
-    metrics.Counter(RESULT_METRICS_PREFIX + 'result_uploaded_KB',
-                    description='The total size (in KB) of test results to be '
-                    'uploaded.'
-                    ).increment_by(result_size_info.result_uploaded_KB,
-                                   fields=fields)
-
-
-@metrics.SecondsTimerDecorator(
-        'chromeos/autotest/result_collection/collect_result_sizes_duration')
 def collect_result_sizes(path, log=logging.debug):
     """Collect the result sizes information and build result summary.
 
@@ -900,7 +867,5 @@ def collect_result_sizes(path, log=logging.debug):
             'directory %s. Fall back to record the total size.\nException: %s' %
             (path, traceback.format_exc()))
         result_size_info = _get_default_size_info(path)
-
-    _report_result_size_metrics(result_size_info)
 
     return result_size_info

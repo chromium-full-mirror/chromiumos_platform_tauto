@@ -10,15 +10,8 @@ from autotest_lib.client.cros import constants
 from autotest_lib.server import utils
 from autotest_lib.server.cros import provision
 
-try:
-    from autotest_lib.utils.frozen_chromite.lib import metrics
-except ImportError:
-    metrics = utils.metrics_mock
-
 
 LABEL_REGEX = r',.*:'
-_LABEL_UPDATE_DURATION_METRIC = metrics.SecondsDistribution(
-        'chromeos/autotest/provision/label_update_durations')
 
 # job_labels should be a string like "name:setting,name:setting"
 # However setting might also contain ',' therefore we need more advanced logic
@@ -75,7 +68,6 @@ def provision_machine(machine):
 
         fields = {'success': label_update_success,
                   'board': host.get_board()}
-        _LABEL_UPDATE_DURATION_METRIC.add(duration, fields=fields)
     except Exception:
         logging.exception('Provision failed due to Exception.')
         job.record('END FAIL', None, 'provision')
