@@ -27,10 +27,6 @@ from autotest_lib.server.hosts.tls_client import exec_dut_command
 import six
 from six.moves import filter
 
-try:
-    from autotest_lib.utils.frozen_chromite.lib import metrics
-except ImportError:
-    metrics = utils.metrics_mock
 
 # pylint: disable=C0111
 
@@ -100,7 +96,6 @@ class AbstractSSHHost(remote.RemoteHost):
         @param connection_pool: ssh_multiplex.ConnectionPool instance to share
                 the main ssh connection across control scripts.
         """
-        self._track_class_usage()
         # IP address is retrieved only on demand. Otherwise the host
         # initialization will fail for host is not online.
         self._ip = None
@@ -1244,27 +1239,6 @@ class AbstractSSHHost(remote.RemoteHost):
             self._cached_up_status = self.is_up_fast()
             self._cached_up_status_updated = time.time()
         return self._cached_up_status
-
-
-    def _track_class_usage(self):
-        """Tracking which class was used.
-
-        The idea to identify unused classes to be able clean them up.
-        We skip names with dynamic created classes where the name is
-        hostname of the device.
-        """
-        class_name = None
-        if 'chrome' not in self.__class__.__name__:
-            class_name = self.__class__.__name__
-        else:
-            for base in self.__class__.__bases__:
-                if 'chrome' not in base.__name__:
-                    class_name = base.__name__
-                    break
-        if class_name:
-            data = {'host_class': class_name}
-            metrics.Counter(
-                'chromeos/autotest/used_hosts').increment(fields=data)
 
     def is_file_exists(self, file_path):
         """Check whether a given file is exist on the host.

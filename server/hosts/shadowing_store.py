@@ -9,15 +9,10 @@ import logging
 
 import common
 from autotest_lib.server.hosts import host_info
-from autotest_lib.utils.frozen_chromite.lib import metrics
-
-
-_METRICS_PREFIX = 'chromeos/autotest/autoserv/host_info/shadowing_store/'
-_REFRESH_METRIC_NAME = _METRICS_PREFIX + 'refresh_count'
-_COMMIT_METRIC_NAME = _METRICS_PREFIX + 'commit_count'
 
 
 logger = logging.getLogger(__file__)
+
 
 class ShadowingStore(host_info.CachingHostInfoStore):
     """A composite CachingHostInfoStore that maintains a main and shadow store.
@@ -58,8 +53,6 @@ class ShadowingStore(host_info.CachingHostInfoStore):
         try:
             self._shadow_store.commit(self._primary_store.get())
         except host_info.StoreError as e:
-            metrics.Counter(
-                    _METRICS_PREFIX + 'initialization_fail_count').increment()
             logger.exception(
                     'Failed to initialize shadow store. '
                     'Expect primary / shadow desync in the future.')
@@ -114,8 +107,6 @@ class ShadowingStore(host_info.CachingHostInfoStore):
         try:
             self._primary_store.commit(info)
         except host_info.StoreError:
-            metrics.Counter(_COMMIT_METRIC_NAME).increment(
-                    fields={'file_commit_result': 'skipped'})
             raise
 
     def _commit_to_shadow_store(self, info):
@@ -125,36 +116,22 @@ class ShadowingStore(host_info.CachingHostInfoStore):
             logger.exception(
                     'shadow commit failed. '
                     'Expect primary / shadow desync in the future.')
-            metrics.Counter(_COMMIT_METRIC_NAME).increment(
-                    fields={'file_commit_result': 'fail'})
-        else:
-            metrics.Counter(_COMMIT_METRIC_NAME).increment(
-                    fields={'file_commit_result': 'success'})
 
     def _refresh_from_primary_store(self):
         try:
             return self._primary_store.get(force_refresh=True)
         except host_info.StoreError:
-            metrics.Counter(_REFRESH_METRIC_NAME).increment(
-                    fields={'validation_result': 'skipped'})
             raise
 
     def _refresh_from_shadow_store(self):
         try:
             return self._shadow_store.get(force_refresh=True)
         except host_info.StoreError:
-            metrics.Counter(_REFRESH_METRIC_NAME).increment(fields={
-                    'validation_result': 'fail_shadow_store_refresh'})
             raise
 
     def _verify_store_infos(self, primary_info, shadow_info):
-        if primary_info == shadow_info:
-            metrics.Counter(_REFRESH_METRIC_NAME).increment(
-                    fields={'validation_result': 'success'})
-        else:
+        if primary_info != shadow_info:
             self._mismatch_callback(primary_info, shadow_info)
-            metrics.Counter(_REFRESH_METRIC_NAME).increment(
-                    fields={'validation_result': 'fail_mismatch'})
             self._shadow_store.commit(primary_info)
 
 

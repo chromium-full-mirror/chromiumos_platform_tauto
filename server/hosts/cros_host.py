@@ -50,14 +50,6 @@ from autotest_lib.site_utils.admin_audit import verifiers as audit_verify
 from six.moves import zip
 
 
-# In case cros_host is being ran via SSP on an older Moblab version with an
-# older chromite version.
-try:
-    from autotest_lib.utils.frozen_chromite.lib import metrics
-except ImportError:
-    metrics = utils.metrics_mock
-
-
 CONFIG = global_config.global_config
 
 class FactoryImageCheckerException(error.AutoservError):
@@ -576,13 +568,6 @@ class CrosHost(abstract_ssh.AbstractSSHHost):
                 'branch': branch,
                 'dev_server': devserver,
             }
-            metrics.Counter(
-                    'chromeos/autotest/provision/verify_url'
-                    ).increment(fields=monarch_fields)
-            metrics.SecondsDistribution(
-                    'chromeos/autotest/provision/verify_url_duration'
-                    ).add(stage_time, fields=monarch_fields)
-
 
     def stage_server_side_package(self, image=None):
         """Stage autotest server-side package on devserver.
@@ -1034,20 +1019,11 @@ class CrosHost(abstract_ssh.AbstractSSHHost):
             return
 
         logging.info('Downloading image to USB')
-        metrics_field = {'download': bool(image_url)}
-        metrics.Counter(
-                'chromeos/autotest/provision/servo_install/download_image'
-        ).increment(fields=metrics_field)
-        with metrics.SecondsTimer(
-                'chromeos/autotest/servo_install/download_image_time'):
-            try:
-                self.servo.image_to_servo_usb(image_path=image_url,
-                                              power_off_dut=False)
-            except error.AutotestError as e:
-                metrics.Counter('chromeos/autotest/repair/image_to_usb_error'
-                                ).increment(
-                                        fields={'host': self.hostname or ''})
-                six.reraise(error.AutotestError, str(e), sys.exc_info()[2])
+        try:
+            self.servo.image_to_servo_usb(image_path=image_url,
+                                          power_off_dut=False)
+        except error.AutotestError as e:
+            six.reraise(error.AutotestError, str(e), sys.exc_info()[2])
 
     def boot_in_recovery_mode(self,
                               usb_boot_timeout=USB_BOOT_TIMEOUT,
@@ -1068,16 +1044,14 @@ class CrosHost(abstract_ssh.AbstractSSHHost):
         """
         logging.info('Booting from USB directly. Usb boot timeout: %s',
                      usb_boot_timeout)
-        with metrics.SecondsTimer(
-                'chromeos/autotest/provision/servo_install/boot_duration'):
-            self.servo.boot_in_recovery_mode(snk_mode=need_snk)
-            if not self.wait_up(timeout=usb_boot_timeout):
-                if need_snk:
-                    # Attempt to restore servo_v4 role to 'src' mode.
-                    self.servo.set_servo_v4_role('src')
-                raise hosts.AutoservRepairError(
-                        'DUT failed to boot from USB after %d seconds' %
-                        usb_boot_timeout, 'failed_to_boot_pre_install')
+        self.servo.boot_in_recovery_mode(snk_mode=need_snk)
+        if not self.wait_up(timeout=usb_boot_timeout):
+            if need_snk:
+                # Attempt to restore servo_v4 role to 'src' mode.
+                self.servo.set_servo_v4_role('src')
+            raise hosts.AutoservRepairError(
+                    'DUT failed to boot from USB after %d seconds' %
+                    usb_boot_timeout, 'failed_to_boot_pre_install')
 
         # Make sure the DUT is boot from an external device.
         if not self.is_boot_from_external_device():
@@ -1123,65 +1097,62 @@ class CrosHost(abstract_ssh.AbstractSSHHost):
         except error.AutoservRunError:
             logging.warn('chromeos-tpm-recovery is too old.')
 
-        with metrics.SecondsTimer(
-                'chromeos/autotest/provision/servo_install/install_duration'):
-            logging.info('Installing image through chromeos-install.')
-            try:
-                self.run('chromeos-install --yes',timeout=install_timeout)
-                self.halt()
-            except Exception as e:
-                storage_errors = [
-                   'No space left on device',
-                   'I/O error when trying to write primary GPT',
-                   'Input/output error while writing out',
-                   'cannot read GPT header',
-                   'can not determine destination device',
-                   'wrong fs type',
-                   'bad superblock on',
-                ]
-                has_error = [msg for msg in storage_errors if(msg in str(e))]
-                if has_error:
-                    info = self.host_info_store.get()
-                    info.set_version_label(
-                        audit_const.DUT_STORAGE_STATE_PREFIX,
-                        audit_const.HW_STATE_NEED_REPLACEMENT)
-                    self.host_info_store.commit(info)
-                    self.set_device_repair_state(
+        logging.info('Installing image through chromeos-install.')
+        try:
+            self.run('chromeos-install --yes', timeout=install_timeout)
+            self.halt()
+        except Exception as e:
+            storage_errors = [
+                    'No space left on device',
+                    'I/O error when trying to write primary GPT',
+                    'Input/output error while writing out',
+                    'cannot read GPT header',
+                    'can not determine destination device',
+                    'wrong fs type',
+                    'bad superblock on',
+            ]
+            has_error = [msg for msg in storage_errors if (msg in str(e))]
+            if has_error:
+                info = self.host_info_store.get()
+                info.set_version_label(audit_const.DUT_STORAGE_STATE_PREFIX,
+                                       audit_const.HW_STATE_NEED_REPLACEMENT)
+                self.host_info_store.commit(info)
+                self.set_device_repair_state(
                         cros_constants.DEVICE_STATE_NEEDS_REPLACEMENT)
-                    logging.debug(
-                        'Fail install image from USB; Storage error; %s', e)
-                    raise error.AutoservError(
+                logging.debug('Fail install image from USB; Storage error; %s',
+                              e)
+                raise error.AutoservError(
                         'Failed to install image from USB due to a suspect '
                         'disk failure, DUT storage state changed to '
                         'need_replacement, please check debug log '
                         'for details.')
-                else:
-                    if is_repair:
-                        # DUT will be marked for replacement if storage is bad.
-                        audit_verify.VerifyDutStorage(self).verify()
+            else:
+                if is_repair:
+                    # DUT will be marked for replacement if storage is bad.
+                    audit_verify.VerifyDutStorage(self).verify()
 
-                    logging.debug('Fail install image from USB; %s', e)
-                    raise error.AutoservError(
+                logging.debug('Fail install image from USB; %s', e)
+                raise error.AutoservError(
                         'Failed to install image from USB due to unexpected '
                         'error, please check debug log for details.')
-            finally:
-                # We need reset the DUT no matter re-install success or not,
-                # as we don't want leave the DUT in boot from usb state.
-                logging.info('Power cycling DUT through servo.')
-                self.servo.get_power_state_controller().power_off()
-                self.servo.switch_usbkey('off')
-                if need_snk:
-                    # Attempt to restore servo_v4 role to 'src' mode.
-                    self.servo.set_servo_v4_role('src')
-                # N.B. The Servo API requires that we use power_on() here
-                # for two reasons:
-                #  1) After turning on a DUT in recovery mode, you must turn
-                #     it off and then on with power_on() once more to
-                #     disable recovery mode (this is a Parrot specific
-                #     requirement).
-                #  2) After power_off(), the only way to turn on is with
-                #     power_on() (this is a Storm specific requirement).
-                self.servo.get_power_state_controller().power_on()
+        finally:
+            # We need reset the DUT no matter re-install success or not,
+            # as we don't want leave the DUT in boot from usb state.
+            logging.info('Power cycling DUT through servo.')
+            self.servo.get_power_state_controller().power_off()
+            self.servo.switch_usbkey('off')
+            if need_snk:
+                # Attempt to restore servo_v4 role to 'src' mode.
+                self.servo.set_servo_v4_role('src')
+            # N.B. The Servo API requires that we use power_on() here
+            # for two reasons:
+            #  1) After turning on a DUT in recovery mode, you must turn
+            #     it off and then on with power_on() once more to
+            #     disable recovery mode (this is a Parrot specific
+            #     requirement).
+            #  2) After power_off(), the only way to turn on is with
+            #     power_on() (this is a Storm specific requirement).
+            self.servo.get_power_state_controller().power_on()
 
         logging.info('Waiting for DUT to come back up.')
         if not self.wait_up(timeout=self.BOOT_TIMEOUT):
@@ -1778,7 +1749,6 @@ class CrosHost(abstract_ssh.AbstractSSHHost):
                                'success' : True,
                                'error' : ''}
 
-        t0 = time.time()
         try:
             super(CrosHost, self).reboot(**dargs)
         except Exception as e:
@@ -1786,18 +1756,6 @@ class CrosHost(abstract_ssh.AbstractSSHHost):
             metric_debug_fields['success'] = False
             metric_debug_fields['error'] = type(e).__name__
             raise
-        finally:
-            duration = int(time.time() - t0)
-            metrics.Counter(
-                    'chromeos/autotest/autoserv/reboot_count').increment(
-                    fields=metric_fields)
-            metrics.Counter(
-                    'chromeos/autotest/autoserv/reboot_debug').increment(
-                    fields=metric_debug_fields)
-            metrics.SecondsDistribution(
-                    'chromeos/autotest/autoserv/reboot_duration').add(
-                    duration, fields=metric_fields)
-
 
     def suspend(self, suspend_time=60, delay_seconds=0,
                 suspend_cmd=None, allow_early_resume=False):
@@ -3046,12 +3004,8 @@ class CrosHost(abstract_ssh.AbstractSSHHost):
         """Check if DUT pingable but failed SSH verifier."""
         if not self._repair_strategy:
             return
-        dut_ssh = self._repair_strategy.verifier_is_good('ssh')
-        dut_ping = self._repair_strategy.verifier_is_good('ping')
-        if (dut_ping == hosts.VERIFY_FAILED
-                    and dut_ssh == hosts.VERIFY_FAILED):
-            metrics.Counter('chromeos/autotest/dut_pingable_no_ssh').increment(
-                    fields={'host': self.hostname})
+        self._repair_strategy.verifier_is_good('ssh')
+        self._repair_strategy.verifier_is_good('ping')
 
     def try_set_device_needs_manual_repair(self):
         """Check if device require manual attention to be fixed.

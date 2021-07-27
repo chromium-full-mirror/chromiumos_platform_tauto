@@ -2,19 +2,16 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import common
 import logging
+
+import common
+
 from autotest_lib.client.common_lib import hosts
 from autotest_lib.server.hosts import cros_constants
 from autotest_lib.server.hosts import repair_utils
-from autotest_lib.client.common_lib import utils
 
 from autotest_lib.utils.frozen_chromite.lib import timeout_util
 
-try:
-    from autotest_lib.utils.frozen_chromite.lib import metrics
-except ImportError:
-    metrics = utils.metrics_mock
 
 # There are some labstations we don't want they receive auto-update,
 # e.g. labstations that used for image qualification purpose
@@ -109,8 +106,6 @@ class _LabstationLangidVerifier(hosts.Verifier):
         """Mark Labstation as has issue with langid."""
         logging.info('Detected langid issue.')
         data = {'host': host.hostname, 'board': host.get_board() or ''}
-        metrics.Counter('chromeos/autotest/labstation/langid_issue').increment(
-                fields=data)
         # labstation reboot will fix the issue but we does not want to
         # reboot the labstation to often. Just create request to reboot
         # it for the next time.

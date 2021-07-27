@@ -22,7 +22,6 @@ from autotest_lib.client.common_lib import base_job
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.common_lib import global_config
 from autotest_lib.client.common_lib import packages
-from autotest_lib.client.common_lib import utils as client_utils
 from autotest_lib.server import installable_object
 from autotest_lib.server import utils
 from autotest_lib.server import utils as server_utils
@@ -1263,10 +1262,9 @@ class log_collector(object):
             result_tools_runner.run_on_client(
                     self.host, self.client_results_dir)
 
-            self.host.get_file(
-                    self.client_results_dir + '/',
-                    self.server_results_dir,
-                    preserve_symlinks=True)
+            self.host.get_file(self.client_results_dir + '/',
+                               self.server_results_dir,
+                               preserve_symlinks=True)
         except Exception:
             # well, don't stop running just because we couldn't get logs
             e_msg = "Unexpected error copying test result logs, continuing ..."

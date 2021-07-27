@@ -894,8 +894,7 @@ class server_job(base_job.base_job):
 
             if not self.fast:
                 namespace['network_stats_label'] = 'at-end'
-                self._execute_code(GET_NETWORK_STATS_CONTROL_FILE,
-                                   namespace)
+                self._execute_code(GET_NETWORK_STATS_CONTROL_FILE, namespace)
 
     def _server_offload_dir_path(self):
         return os.path.join(self.resultdir, self._sync_offload_dir)

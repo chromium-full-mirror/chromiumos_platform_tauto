@@ -27,13 +27,6 @@ from autotest_lib.server import utils
 from autotest_lib.server.hosts import abstract_ssh
 import six
 
-# In case cros_host is being ran via SSP on an older Moblab version with an
-# older chromite version.
-try:
-    from autotest_lib.utils.frozen_chromite.lib import metrics
-except ImportError:
-    metrics = utils.metrics_mock
-
 
 def THIS_IS_SLOW(func):
     """Mark the given function as slow, when looking at calls to it"""
@@ -201,28 +194,6 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
             command += ' "%s"' % utils.sh_escape(arg)
         full_cmd = '%s "%s %s"' % (ssh_cmd, env, utils.sh_escape(command))
 
-        def counters_inc(counter_name, failure_name):
-            """Helper function to increment metrics counters.
-            @param counter_name: string indicating which counter to use
-            @param failure_name: string indentifying an error, or 'success'
-            """
-            if counter_name == 'call':
-                # ssh_counter records the outcome of each ssh invocation
-                # inside _run(), including exceptions.
-                ssh_counter = metrics.Counter('chromeos/autotest/ssh/calls')
-                fields = {'error' : failure_name or 'success',
-                          'attempt' : ssh_call_count}
-                ssh_counter.increment(fields=fields)
-
-            if counter_name == 'run':
-                # run_counter records each call to _run() with its result
-                # and how many tries were made.  Calls are recorded when
-                # _run() exits (including exiting with an exception)
-                run_counter = metrics.Counter('chromeos/autotest/ssh/runs')
-                fields = {'error' : failure_name or 'success',
-                          'attempt' : ssh_call_count}
-                run_counter.increment(fields=fields)
-
         # If ssh_failure_retry_ok is True, retry twice on timeouts and generic
         # error 255: if a simple retry doesn't work, kill the ssh main
         # connection and try again.  (Note that either error could come from
@@ -252,8 +223,6 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
                                    ignore_timeout=ignore_timeout)
             except Exception as e:
                 # No retries on exception.
-                counters_inc('call', 'exception')
-                counters_inc('run', 'exception')
                 raise e
 
             failure_name = None
@@ -270,9 +239,6 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
             else:
                 # result == None
                 failure_name = 'timeout'
-
-            # Record the outcome of the ssh invocation.
-            counters_inc('call', failure_name)
 
             if failure_name:
                 # There was a failure: decide whether to retry.
@@ -305,7 +271,6 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
         # the outcome of this function.
 
         if ignore_timeout and not result:
-            counters_inc('run', 'ignored_timeout')
             return None
 
         # The error messages will show up in band (indistinguishable
@@ -316,16 +281,13 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
         if result.exit_status == 255:
             if re.search(r'^ssh: connect to host .* port .*: '
                          r'Connection timed out\r$', result.stderr):
-                counters_inc('run', 'final_timeout')
                 raise error.AutoservSSHTimeout(
                         "ssh timed out: %r" % original_cmd.strip(), result)
             if "Permission denied." in result.stderr:
                 msg = "ssh permission denied"
-                counters_inc('run', 'final_eperm')
                 raise error.AutoservSshPermissionDeniedError(msg, result)
 
         if not ignore_status and result.exit_status > 0:
-            counters_inc('run', 'final_run_error')
             msg = result.stderr.strip()
             if not msg:
                 msg = result.stdout.strip()
@@ -334,7 +296,6 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
             raise error.AutoservRunError("command execution error (%d): %r" %
                                          (result.exit_status, msg), result)
 
-        counters_inc('run', failure_name)
         return result
 
     def set_default_run_timeout(self, timeout):
@@ -381,28 +342,25 @@ class SSHHost(abstract_ssh.AbstractSSHHost):
         if timeout is None:
             timeout = self._default_run_timeout
         start_time = time.time()
-        with metrics.SecondsTimer('chromeos/autotest/ssh/main_ssh_time',
-                                  scale=0.001):
+        self.start_main_ssh(
+                min(
+                        timeout,
+                        self.DEFAULT_START_MAIN_SSH_TIMEOUT_S,
+                ))
 
-            self.start_main_ssh(min(
-                    timeout,
-                    self.DEFAULT_START_MAIN_SSH_TIMEOUT_S,
-            ))
-
-            env = " ".join("=".join(pair) for pair in six.iteritems(self.env))
-            elapsed = time.time() - start_time
-            try:
-                return self._run(command, timeout - elapsed, ignore_status,
-                                 stdout_tee, stderr_tee, connect_timeout, env,
-                                 options, stdin, args, ignore_timeout,
-                                 ssh_failure_retry_ok, verbose)
-            except error.CmdError as cmderr:
-                # We get a CmdError here only if there is timeout of that
-                # command. Catch that and stuff it into AutoservRunError and
-                # raise it.
-                timeout_message = str('Timeout encountered: %s' %
-                                      cmderr.args[0])
-                raise error.AutoservRunError(timeout_message, cmderr.args[1])
+        env = " ".join("=".join(pair) for pair in six.iteritems(self.env))
+        elapsed = time.time() - start_time
+        try:
+            return self._run(command, timeout - elapsed, ignore_status,
+                             stdout_tee, stderr_tee, connect_timeout, env,
+                             options, stdin, args, ignore_timeout,
+                             ssh_failure_retry_ok, verbose)
+        except error.CmdError as cmderr:
+            # We get a CmdError here only if there is timeout of that
+            # command. Catch that and stuff it into AutoservRunError and
+            # raise it.
+            timeout_message = str('Timeout encountered: %s' % cmderr.args[0])
+            raise error.AutoservRunError(timeout_message, cmderr.args[1])
 
 
     def run_background(self, command, verbose=True):

@@ -16,7 +16,6 @@ import time
 import common
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.common_lib import hosts
-from autotest_lib.client.common_lib import utils
 from autotest_lib.server.cros.servo import servo
 from autotest_lib.server.hosts import cros_constants
 from autotest_lib.server.hosts import repair_utils
@@ -25,10 +24,6 @@ from autotest_lib.server.cros.servo.topology import servo_topology
 from autotest_lib.site_utils.admin_audit import servo_updater
 import six
 
-try:
-    from autotest_lib.utils.frozen_chromite.lib import metrics
-except ImportError:
-    metrics = utils.metrics_mock
 
 from autotest_lib.utils.frozen_chromite.lib import timeout_util
 
@@ -626,15 +621,6 @@ class _BaseDUTConnectionVerifier(hosts.Verifier):
             if val < self.MAX_PPDUT5_MV_WHEN_NOT_CONNECTED:
                 # servo is not connected to the DUT
                 return False
-            if val < self.MIN_PPDUT5_MV_WHEN_CONNECTED:
-                # is unexpected value.
-                # collecting metrics to look case by case
-                # TODO(otabek) for analysis b:163845694
-                data = host._get_host_metrics_data()
-                metrics.Counter('chromeos/autotest/repair/ppdut5_mv_case'
-                                ).increment(fields=data)
-            # else:
-            # servo is physical connected to the DUT
         except Exception as e:
             logging.debug('(Not critical) %s', e)
         return True
@@ -942,8 +928,6 @@ class _BatteryVerifier(hosts.Verifier):
                     'model': host.servo_model or 'unknown',
                     'ratio': ratio
             }
-            metrics.Counter('chromeos/autotest/battery/ratio').increment(
-                    fields=data)
         except Exception as e:
             # Keeping it with info level because we do not expect it.
             logging.info('(Not critical) %s', e)

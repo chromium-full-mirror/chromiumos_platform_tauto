@@ -1,14 +1,6 @@
 from autotest_lib.server import utils
 from autotest_lib.server.cros import provision
 
-try:
-    from autotest_lib.utils.frozen_chromite.lib import metrics
-except ImportError:
-    metrics = utils.metrics_mock
-
-
-DURATION_METRIC = 'chromeos/autotest/autoserv/verify_duration'
-
 
 # A string of the form 'label1,label2:value,label3'.
 job_labels = locals().get('job_labels') or ','.join(args)
@@ -23,10 +15,8 @@ def verify(machine):
                                          try_servo_recovery=True)
     hostname = utils.get_hostname_from_machine(machine)
     try:
-        with metrics.SecondsTimer(DURATION_METRIC,
-                                  fields={'dut_host_name': hostname}):
-            target.verify()
-            provision.Verify.run_task_actions(job, target, labels_list)
+        target.verify()
+        provision.Verify.run_task_actions(job, target, labels_list)
     except Exception:
         logging.exception('Verify failed due to Exception.')
         job.record('END FAIL', None, 'verify')

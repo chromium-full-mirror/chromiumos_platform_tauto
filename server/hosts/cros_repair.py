@@ -9,7 +9,6 @@ from __future__ import print_function
 
 import json
 import logging
-import math
 import six
 import sys
 import time
@@ -18,7 +17,6 @@ import common
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.common_lib import global_config
 from autotest_lib.client.common_lib import hosts
-from autotest_lib.client.common_lib import utils
 from autotest_lib.client.common_lib.cros import dev_server
 from autotest_lib.client.common_lib.cros import retry
 from autotest_lib.client.common_lib.cros import tpm_utils
@@ -37,10 +35,6 @@ from autotest_lib.site_utils.admin_audit import constants as audit_const
 from autotest_lib.site_utils.admin_audit import battery_validator
 from six.moves import range
 
-try:
-    from autotest_lib.utils.frozen_chromite.lib import metrics
-except ImportError:
-    metrics = utils.metrics_mock
 
 from autotest_lib.utils.frozen_chromite.lib import timeout_util
 
@@ -166,9 +160,6 @@ class ACPowerVerifier(hosts.Verifier):
         host_info = host.host_info_store.get()
         if host_info.get_label_value('power') == 'battery':
             if 'Battery' not in info:
-                data = {'host': host.hostname, 'model': host_info.model}
-                metrics.Counter('chromeos/autotest/battery_not_detected'
-                                ).increment(fields=data)
                 logging.info('Battery is not presented but expected!'
                              ' Probably hardware issue.')
 
@@ -179,15 +170,9 @@ class ACPowerVerifier(hosts.Verifier):
             # Collect info to determine which battery level is better to call
             # as MIN_BATTERY_LEVEL for DUTs in the lab.
             if battery_level < cros_constants.MIN_BATTERY_LEVEL:
-                level_by_10 = int(math.floor(battery_level / 10.0)) * 10
-                metrics_data = {
-                        'host': host.hostname,
-                        'level': level_by_10,
-                        'mode': charging_state
-                }
-                metrics.Counter('chromeos/autotest/battery/state2').increment(
-                        fields=metrics_data)
-
+                logging.info(
+                        'Battery level (%s) < MIN_BATTERY_LEVEL (%s)' %
+                        battery_level, cros_constants.MIN_BATTERY_LEVEL)
             if (charging_state == self.BATTERY_DISCHARGING
                         and battery_level < self.BATTERY_DISCHARGE_MIN):
                 logging.debug('Try to fix discharging state of the battery. '
@@ -200,26 +185,11 @@ class ACPowerVerifier(hosts.Verifier):
                 time.sleep(10)
                 info = self._load_info(host)
                 charging_state = info['Battery']['state']
-                fixed = charging_state != self.BATTERY_DISCHARGING
-                # TODO (@otabek) remove metrics after research
                 logging.debug('Fixed battery discharge mode.')
-                metrics_data = {
-                        'model': host.host_info_store.get().model,
-                        'fixed': fixed
-                }
-                metrics.Counter(
-                    'chromeos/autotest/repair/chargecontrol_fixed'
-                ).increment(fields=metrics_data)
 
             if (battery_level < cros_constants.MIN_BATTERY_LEVEL
                         and charging_state == self.BATTERY_DISCHARGING):
-                # TODO(@xianuowang) remove metrics here once we have device
-                # health profile to collect history of DUT's metrics.
-                metrics_data = {'host': host.hostname,
-                                'board': host.host_info_store.get().board}
-                metrics.Counter(
-                    'chromeos/autotest/repair/verifier/power').increment(
-                        fields=metrics_data)
+
                 raise hosts.AutoservVerifyError(
                         'Battery is in discharging state and current level'
                         ' is less than %s%%' %
@@ -526,11 +496,6 @@ class HWIDVerifier(hosts.Verifier):
 
         if host_hwid != info_hwid:
             # We not fail verifier as it not critical for majority tests.
-            metrics.Counter('chromeos/autotest/repair/hwid_change').increment(
-                    fields={
-                            'host': host.hostname,
-                            'board': info.board or ''
-                    })
             logging.info(
                     'HWID changed to: %s required manual work'
                     ' to fix it.', host_hwid)
@@ -1297,9 +1262,6 @@ class ServoInstallRepair(hosts.RepairAction):
         if host_info:
             usb_state = host_info.get_label_value(
                     audit_const.SERVO_USB_STATE_PREFIX)
-            metrics_data = {'host': host.hostname, 'usb_state': usb_state}
-            metrics.Counter('chromeos/autotest/usbkey_install_success'
-                            ).increment(fields=metrics_data)
 
     def _format_usb_storage(self, host):
         """Format USB-storage connected to servo."""

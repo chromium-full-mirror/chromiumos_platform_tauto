@@ -38,10 +38,6 @@ from autotest_lib.server.cros.faft.utils import config
 from autotest_lib.client.common_lib import global_config
 from autotest_lib.server.cros.servo.topology import servo_topology
 
-try:
-    from autotest_lib.utils.frozen_chromite.lib import metrics
-except ImportError:
-    metrics = utils.metrics_mock
 
 _CONFIG = global_config.global_config
 
@@ -1258,11 +1254,6 @@ class ServoHost(base_servohost.BaseServoHost):
     def get_servo_state(self):
         return self._servo_state
 
-    def _get_host_metrics_data(self):
-        return {'port': self.servo_port,
-                'host': self.get_dut_hostname() or self.hostname,
-                'board': self.servo_board or ''}
-
     def is_servo_board_present_on_servo_v3(self):
         """Check if servo board is detected on servo_v3"""
         logging.debug('Started to detect servo board on servo_v3')
@@ -1278,9 +1269,6 @@ class ServoHost(base_servohost.BaseServoHost):
             return False
         except Exception as e:
             # can be triggered by timeout issue due running the script
-            metrics.Counter(
-                'chromeos/autotest/repair/servo_detection/timeout'
-                ).increment(fields=self._get_host_metrics_data())
             logging.error('%s; %s', not_detected, str(e))
         return None
 
@@ -1372,13 +1360,6 @@ class ServoHost(base_servohost.BaseServoHost):
         if servo_topology == hosts.VERIFY_FAILED:
             return servo_constants.SERVO_STATE_TOPOLOGY_ISSUE
 
-        # TODO(otabek@): detect special cases detected by pwr_button
-        if dut_connected == hosts.VERIFY_SUCCESS:
-            if pwr_button == hosts.VERIFY_FAILED:
-                metrics.Counter(
-                        'chromeos/autotest/repair/servo_unexpected/pwr_button2'
-                ).increment(fields=self._get_host_metrics_data())
-
         if (servod_started == hosts.VERIFY_FAILED
                     or servod_echo == hosts.VERIFY_FAILED):
             return servo_constants.SERVO_STATE_SERVOD_ISSUE
@@ -1400,9 +1381,6 @@ class ServoHost(base_servohost.BaseServoHost):
         if lid_open == hosts.VERIFY_FAILED:
             return servo_constants.SERVO_STATE_LID_OPEN_FAILED
 
-        metrics.Counter(
-            'chromeos/autotest/repair/unknown_servo_state'
-            ).increment(fields=self._get_host_metrics_data())
         logging.info('We do not have special state for this failure yet :)')
         return servo_constants.SERVO_STATE_BROKEN
 
