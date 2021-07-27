@@ -42,7 +42,7 @@ from autotest_lib.client.common_lib import global_config
 from autotest_lib.client.common_lib import logging_manager
 from autotest_lib.client.common_lib import packages
 from autotest_lib.client.cros import cros_logging
-from autotest_lib.client.tools import html_report
+
 
 GLOBAL_CONFIG = global_config.global_config
 

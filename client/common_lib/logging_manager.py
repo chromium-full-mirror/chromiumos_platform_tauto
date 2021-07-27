@@ -45,10 +45,9 @@ import fcntl
 import logging
 import os
 import signal
-import six
 import sys
 import time
-import warnings
+
 
 # primary public APIs
 
@@ -129,18 +128,8 @@ def _logging_manager_aware_logger__find_caller(unused):
     return rv
 
 
-if sys.version_info[:2] > (2, 7):
-    warnings.warn('This module has not been reviewed for Python %s' %
-                  sys.version)
-
-
 # Monkey patch our way around logging's design...
 _original_logger__find_caller = logging.Logger.findCaller
-# Do not overwrite in Python 3 and on. It breaks the "<module>:<line num>|"
-# formatting in Python 3.
-if six.PY2:
-    logging.Logger.findCaller = _logging_manager_aware_logger__find_caller
-
 
 
 class LoggingFile(object):
@@ -272,7 +261,6 @@ class _StreamManager(object):
         Called when the logging manager is restoring a previous context.
         """
         pass
-
 
 
 class LoggingManager(object):
