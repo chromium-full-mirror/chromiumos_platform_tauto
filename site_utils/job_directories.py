@@ -15,11 +15,6 @@ from autotest_lib.client.common_lib import utils
 from autotest_lib.server.cros.dynamic_suite import constants
 from autotest_lib.server.cros.dynamic_suite import frontend_wrappers
 
-try:
-    from autotest_lib.utils.frozen_chromite.lib import metrics
-except ImportError:
-    metrics = utils.metrics_mock
-
 
 SPECIAL_TASK_PATTERN = '.*/hosts/[^/]+/(\d+)-[^/]+'
 
@@ -236,9 +231,6 @@ def _find_results_dir(dirname):
 
 
 _OFFLOAD_MARKER = ".ready_for_offload"
-_marker_parse_error_metric = metrics.Counter(
-    'chromeos/autotest/gs_offloader/offload_marker_parse_errors',
-    description='Errors parsing the offload marker file')
 
 
 class SwarmingJobDirectory(_JobDirectory):
@@ -290,7 +282,6 @@ class SwarmingJobDirectory(_JobDirectory):
         except ValueError as e:
             logging.debug('Error parsing %s for %s: %s', _OFFLOAD_MARKER,
                           self.dirname, e)
-            _marker_parse_error_metric.increment()
             return None
 
 

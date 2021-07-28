@@ -17,10 +17,6 @@ from autotest_lib.client.common_lib import global_config
 from autotest_lib.client.common_lib.cros import retry
 from autotest_lib.site_utils.rpm_control_system.config import rpm_config
 
-try:
-    from autotest_lib.utils.frozen_chromite.lib import metrics
-except ImportError:
-    from autotest_lib.client.bin.utils import metrics_mock as metrics
 
 RPM_FRONTEND_URI = global_config.global_config.get_config_value('CROS',
         'rpm_frontend_uri', type=str, default='')
@@ -95,21 +91,7 @@ def _set_power(args_tuple, timeout_mins=RPM_CALL_TIMEOUT_MINS):
         error_msg = ('Failed to change outlet status for host: %s to '
                      'state: %s.' % (args_tuple[0], args_tuple[-1]))
         logging.error(error_msg)
-        if len(args_tuple) > 2:
-            # Collect failure metrics if we set power via rpm.
-            _send_rpm_failure_metrics(args_tuple[0], args_tuple[1],
-                                      args_tuple[2])
         raise RemotePowerException(error_msg)
-
-
-def _send_rpm_failure_metrics(hostname, rpm_host, outlet):
-    metrics_fields = {
-            'hostname': hostname,
-            'rpm_host': rpm_host,
-            'outlet': outlet
-    }
-    metrics.Counter('chromeos/autotest/rpm/rpm_failure2').increment(
-            fields=metrics_fields)
 
 
 def parse_options():

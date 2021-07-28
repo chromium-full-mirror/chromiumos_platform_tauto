@@ -47,11 +47,6 @@ except ImportError as e:
 from autotest_lib.server import utils as server_utils
 from autotest_lib.utils.frozen_chromite.lib import retry_util
 
-try:
-    from autotest_lib.utils.frozen_chromite.lib import metrics
-except ImportError:
-    metrics = utils.metrics_mock
-
 
 DEFAULT_CREDS_FILE = global_config.global_config.get_config_value(
         'NOTIFICATIONS', 'gmail_api_credentials', default=None)
@@ -174,15 +169,9 @@ def send_email(to, subject, message_text, retry=True, creds_path=None):
             logging.warning('Will retry error %s', exc)
         return should_retry
 
-    success = False
-    try:
-        retry_util.GenericRetry(
-                handler, retry_count, _run, sleep=RETRY_DELAY,
-                backoff_factor=RETRY_BACKOFF_FACTOR)
-        success = True
-    finally:
-        metrics.Counter('chromeos/autotest/send_email/count').increment(
-                fields={'success': success})
+    retry_util.GenericRetry(
+            handler, retry_count, _run, sleep=RETRY_DELAY,
+            backoff_factor=RETRY_BACKOFF_FACTOR)
 
 
 if __name__ == '__main__':

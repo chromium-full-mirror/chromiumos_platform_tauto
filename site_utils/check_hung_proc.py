@@ -21,13 +21,9 @@ import subprocess
 
 from autotest_lib.server import site_utils
 
-try:
-    from autotest_lib.utils.frozen_chromite.lib import metrics
-except ImportError:
-    metrics = site_utils.metrics_mock
-
 
 PROGRAM_TO_CHECK_SET = set(['gsutil', 'autoserv'])
+
 
 def check_proc(prog, max_elapsed_sec):
     """Check the number of long-running processes for a given program.
@@ -46,10 +42,6 @@ def check_proc(prog, max_elapsed_sec):
 
     if prog not in PROGRAM_TO_CHECK_SET:
         prog = 'unknown'
-
-    metrics.Gauge('chromeos/autotest/hung_processes').set(
-            count, fields={'program': prog}
-    )
 
 
 def main():

@@ -18,11 +18,6 @@ from autotest_lib.client.common_lib import error
 from autotest_lib.client.common_lib import global_config
 from autotest_lib.client.common_lib import utils as client_utils
 
-try:
-    from autotest_lib.utils.frozen_chromite.lib import metrics
-except ImportError:
-    metrics = client_utils.metrics_mock
-
 
 CONFIG = global_config.global_config
 ENABLE_RESULT_THROTTLING = CONFIG.get_config_value(
@@ -48,28 +43,23 @@ def _deploy_result_tools(host):
 
     @param host: Host to run the result tools.
     """
-    with metrics.SecondsTimer(
-            'chromeos/autotest/job/send_result_tools_duration',
-            fields={'dut_host_name': host.hostname}) as fields:
-        try:
-            result = host.run('test -f %s' %
-                      (_SUMMARY_CMD % DEFAULT_AUTOTEST_DIR),
-                   timeout=_FIND_DIR_SUMMARY_TIMEOUT,
-                   ignore_status=True)
-            if result.exit_status == 0:
-                logging.debug('result tools are already deployed to %s.',
-                        host.hostname)
-            else:
-                logging.debug('Deploy result utilities to %s', host.hostname)
-                result_tools_dir = os.path.dirname(__file__)
-                host.send_file(result_tools_dir, DEFAULT_AUTOTEST_DIR,
-                               excludes = _EXCLUDES)
-            fields['success'] = True
-        except error.AutotestHostRunError:
-            logging.debug('Failed to deploy result tools using `excludes`. Try '
-                          'again without `excludes`.')
-            host.send_file(result_tools_dir, DEFAULT_AUTOTEST_DIR)
-            fields['success'] = False
+    try:
+        result = host.run('test -f %s' %
+                  (_SUMMARY_CMD % DEFAULT_AUTOTEST_DIR),
+               timeout=_FIND_DIR_SUMMARY_TIMEOUT,
+               ignore_status=True)
+        if result.exit_status == 0:
+            logging.debug('result tools are already deployed to %s.',
+                    host.hostname)
+        else:
+            logging.debug('Deploy result utilities to %s', host.hostname)
+            result_tools_dir = os.path.dirname(__file__)
+            host.send_file(result_tools_dir, DEFAULT_AUTOTEST_DIR,
+                           excludes = _EXCLUDES)
+    except error.AutotestHostRunError:
+        logging.debug('Failed to deploy result tools using `excludes`. Try '
+                      'again without `excludes`.')
+        host.send_file(result_tools_dir, DEFAULT_AUTOTEST_DIR)
 
 
 def run_on_client(host, client_results_dir, cleanup_only=False):
@@ -83,44 +73,39 @@ def run_on_client(host, client_results_dir, cleanup_only=False):
              False: If the command failed with error in result throttling.
     """
     success = False
-    with metrics.SecondsTimer(
-            'chromeos/autotest/job/dir_summary_collection_duration',
-            fields={'dut_host_name': host.hostname}) as fields:
-        try:
-            _deploy_result_tools(host)
+    try:
+        _deploy_result_tools(host)
 
-            if cleanup_only:
-                logging.debug('Cleaning up directory summary in %s',
-                              client_results_dir)
-                cmd = (_CLEANUP_DIR_SUMMARY_CMD %
-                       (DEFAULT_AUTOTEST_DIR, client_results_dir))
-                host.run(cmd, ignore_status=False,
-                         timeout=_CLEANUP_DIR_SUMMARY_TIMEOUT)
-            else:
-                logging.debug('Getting directory summary for %s',
-                              client_results_dir)
-                throttle_option = ''
-                if ENABLE_RESULT_THROTTLING:
-                    try:
-                        throttle_option = (_THROTTLE_OPTION_FMT %
-                                           host.job.max_result_size_KB)
-                    except AttributeError:
-                        # In case host job is not set, skip throttling.
-                        logging.warn('host object does not have job attribute, '
-                                     'skipping result throttling.')
-                cmd = (_BUILD_DIR_SUMMARY_CMD %
-                       (DEFAULT_AUTOTEST_DIR, client_results_dir,
-                        throttle_option))
-                host.run(cmd, ignore_status=False,
-                         timeout=_BUILD_DIR_SUMMARY_TIMEOUT)
-                success = True
-            fields['success'] = True
-        except error.AutoservRunError:
-            action = 'cleanup' if cleanup_only else 'create'
-            logging.exception(
-                    'Non-critical failure: Failed to %s directory summary for '
-                    '%s.', action, client_results_dir)
-            fields['success'] = False
+        if cleanup_only:
+            logging.debug('Cleaning up directory summary in %s',
+                          client_results_dir)
+            cmd = (_CLEANUP_DIR_SUMMARY_CMD %
+                   (DEFAULT_AUTOTEST_DIR, client_results_dir))
+            host.run(cmd, ignore_status=False,
+                     timeout=_CLEANUP_DIR_SUMMARY_TIMEOUT)
+        else:
+            logging.debug('Getting directory summary for %s',
+                          client_results_dir)
+            throttle_option = ''
+            if ENABLE_RESULT_THROTTLING:
+                try:
+                    throttle_option = (_THROTTLE_OPTION_FMT %
+                                       host.job.max_result_size_KB)
+                except AttributeError:
+                    # In case host job is not set, skip throttling.
+                    logging.warn('host object does not have job attribute, '
+                                 'skipping result throttling.')
+            cmd = (_BUILD_DIR_SUMMARY_CMD %
+                   (DEFAULT_AUTOTEST_DIR, client_results_dir,
+                    throttle_option))
+            host.run(cmd, ignore_status=False,
+                     timeout=_BUILD_DIR_SUMMARY_TIMEOUT)
+            success = True
+    except error.AutoservRunError:
+        action = 'cleanup' if cleanup_only else 'create'
+        logging.exception(
+                'Non-critical failure: Failed to %s directory summary for '
+                '%s.', action, client_results_dir)
 
     return success
 

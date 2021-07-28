@@ -27,8 +27,6 @@ import common
 from autotest_lib.client.common_lib import autotemp, utils
 from autotest_lib.client.common_lib.test_utils import mock
 
-metrics = utils.metrics_mock
-
 
 class test_read_one_line(unittest.TestCase):
     def setUp(self):
@@ -1128,52 +1126,6 @@ class GetOffloaderUriTest(unittest.TestCase):
         self.assertEqual(gsuri, utils.get_offload_gsuri())
 
         self.god.check_playback()
-
-
-
-class  MockMetricsTest(unittest.TestCase):
-    """Test metrics mock class can handle various metrics calls."""
-
-    def test_Counter(self):
-        """Test the mock class can create an instance and call any method.
-        """
-        c = metrics.Counter('counter')
-        c.increment(fields={'key': 1})
-
-
-    def test_Context(self):
-        """Test the mock class can handle context class.
-        """
-        test_value = None
-        with metrics.SecondsTimer('context') as t:
-            test_value = 'called_in_context'
-            t['random_key'] = 'pass'
-        self.assertEqual('called_in_context', test_value)
-
-
-    def test_decorator(self):
-        """Test the mock class can handle decorator.
-        """
-        class TestClass(object):
-
-            def __init__(self):
-                self.value = None
-
-        test_value = TestClass()
-        test_value.value = None
-        @metrics.SecondsTimerDecorator('decorator')
-        def test(arg):
-            arg.value = 'called_in_decorator'
-
-        test(test_value)
-        self.assertEqual('called_in_decorator', test_value.value)
-
-
-    def test_setitem(self):
-        """Test the mock class can handle set item call.
-        """
-        timer = metrics.SecondsTimer('name')
-        timer['random_key'] = 'pass'
 
 
 class test_background_sample(unittest.TestCase):

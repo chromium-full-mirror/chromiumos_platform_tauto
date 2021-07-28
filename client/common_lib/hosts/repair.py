@@ -29,10 +29,6 @@ import re
 import common
 from autotest_lib.client.common_lib import error
 
-try:
-    from autotest_lib.utils.frozen_chromite.lib import metrics
-except ImportError:
-    from autotest_lib.client.bin.utils import metrics_mock as metrics
 
 #Regular experssion pattern to filter out unwanted hostname.
 _HOSTNAME_PATTERN = 'chromeos[0-9]-row[0-9]+[a-z]?-rack[0-9]+[a-z]?-host[0-9]+'
@@ -548,10 +544,6 @@ class RepairAction(_DependencyNode):
     def __init__(self, tag, dependencies, triggers, host_class):
         super(RepairAction, self).__init__(tag, 'repair', dependencies)
         self._trigger_list = triggers
-        self._failure_modes_counter = metrics.Counter(
-            'chromeos/autotest/repair/failure_modes')
-        self._failure_detail_counter = metrics.Counter(
-            'chromeos/autotest/repair/failure_detail')
         self.host_class = host_class
 
     def _record_start(self, host, silent):
@@ -584,50 +576,6 @@ class RepairAction(_DependencyNode):
         self._record(host, silent, 'END FAIL', *args)
         self.status = status
 
-    def _send_failure_metrics(self, host, error, stage):
-        """Send failure mode metrics to monarch
-
-        @param host         Host which this RepairAction targeted to.
-        @param error        An exception that caught in _repair_host.
-        @param stage        In which stage we caught above exception.
-                            Can be one of below value:
-                                'dep'    during verify dependencies
-                                'pre'    during pre-repair trigger verification
-                                'repair' during repair() process itself
-                                'post'   during post-repair trigger verification
-        """
-
-        def get_fields(vf_tag):
-            fields = {
-                'ra_tag': self.tag,
-                'vf_tag': vf_tag,
-                'hostname': _filter_metrics_hostname(host),
-                'stage': stage,
-                'host_class': self.host_class
-            }
-            return fields
-
-        if isinstance(error, AutoservVerifyDependencyError):
-            # We'll catch all failure tags here for a dependencies error
-            for f in error.failures:
-                self._failure_modes_counter.increment(fields=get_fields(f.tag))
-        else:
-            # When there is failure during repair or unknown failure. there
-            # will be no Verifier, so vf_tag set to 'unknown'.
-            self._failure_modes_counter.increment(fields=get_fields('unknown'))
-
-        if stage == 'repair':
-            self._send_failure_detail(error)
-
-    def _send_failure_detail(self, error):
-        """Send reason of failure inside repair() to monarch.
-
-        @param error    The exception caught inside repair().
-        """
-        tag = error.tag if isinstance(error, AutoservRepairError) else 'unknown'
-        fields = {'repair_action_tag': self.tag, 'repair_failure_tag': tag}
-        self._failure_detail_counter.increment(fields=fields)
-
     def _repair_host(self, host, silent):
         """
         Apply this repair action if any triggers fail.
@@ -653,7 +601,6 @@ class RepairAction(_DependencyNode):
         try:
             self._verify_dependencies(host, silent)
         except Exception as e:
-            self._send_failure_metrics(host, e, 'dep')
             raise
 
         self.status = 'skipped'
@@ -676,7 +623,6 @@ class RepairAction(_DependencyNode):
             e.log_dependencies(
                     'Attempting this repair action',
                     'Repairing because these triggers failed')
-            self._send_failure_metrics(host, e, 'pre')
             self._record_start(host, silent)
             try:
                 self.repair(host)
@@ -688,7 +634,6 @@ class RepairAction(_DependencyNode):
                 logging.exception('Repair failed: %s', self.description)
                 self._record_fail(host, silent, e)
                 self._record_end_fail(host, silent, 'repair_failure')
-                self._send_failure_metrics(host, e, 'repair')
                 # Increase action fail count if device health profile is
                 # available to the host class.
                 if hasattr(host, 'health_profile') and host.health_profile:
@@ -704,7 +649,6 @@ class RepairAction(_DependencyNode):
                         'This repair action reported success',
                         'However, these triggers still fail')
                 self._record_end_fail(host, silent, 'verify_failure')
-                self._send_failure_metrics(host, e, 'post')
                 raise AutoservRepairError(
                         'Some verification checks still fail', 'post_verify')
             except Exception:
@@ -713,7 +657,6 @@ class RepairAction(_DependencyNode):
                 # precaution.
                 self._record_end_fail(host, silent, 'unknown',
                                       'Internal error in repair')
-                self._send_failure_metrics(host, e, 'post')
                 raise
         else:
             self.status = 'skipped'
@@ -896,10 +839,6 @@ class RepairStrategy(object):
         # Metrics - we report on 'actions' for every repair action
         # we execute; we report on 'strategy' for every complete
         # repair operation.
-        self._strategy_counter = metrics.Counter(
-            'chromeos/autotest/repair/repair_strategy_v2')
-        self._actions_counter = metrics.Counter(
-            'chromeos/autotest/repair/repair_actions')
         self.host_class = host_class
         # We use the `all_verifiers` list to guarantee that our root
         # verifier will execute its dependencies in the order provided
@@ -923,39 +862,6 @@ class RepairStrategy(object):
                             [verifier_map[t] for t in triggers],
                             self.host_class)
             self._repair_actions.append(r)
-
-    def _send_strategy_metrics(self, host, result):
-        """Send repair strategy metrics to monarch
-
-        @param host     The target to be repaired.
-        @param result   A String that describe a final result for the
-                        RepairStrategy.
-        """
-        info = host.host_info_store.get()
-        board = info.board if info.board else 'unknown'
-        model = info.model if info.model else 'unknown'
-        fields = {
-            'board': board,
-            'host_class': self.host_class,
-            'hostname': _filter_metrics_hostname(host),
-            'model': model,
-            'result': result,
-        }
-        self._strategy_counter.increment(fields=fields)
-
-    def _send_action_metrics(self, host, ra):
-        """Send repair action metrics to monarch
-
-        @param host     The target to be repaired.
-        @param ra       an RepairAction instance.
-        """
-        fields = {
-            'tag': ra.tag,
-            'status': ra.status,
-            'hostname': _filter_metrics_hostname(host),
-            'host_class': self.host_class
-        }
-        self._actions_counter.increment(fields=fields)
 
     def verify(self, host, silent=False):
         """
@@ -985,7 +891,6 @@ class RepairStrategy(object):
                 # lower levels
                 pass
             finally:
-                self._send_action_metrics(host, ra)
                 logging.debug('Finished repair task: %s.', type(ra).__name__)
                 if ra.status not in ('skipped', 'blocked'):
                     attempted = True
@@ -998,8 +903,6 @@ class RepairStrategy(object):
             if not attempted:
                 result = 'attempt_blocked'
             raise
-        finally:
-            self._send_strategy_metrics(host, result)
 
     def verifier_is_good(self, tag):
         """Find and return result of a verifier.

@@ -10,11 +10,6 @@ import common
 from autotest_lib.client.common_lib import utils as client_utils
 from autotest_lib.server.cros.servo.topology import topology_constants
 
-try:
-    from autotest_lib.utils.frozen_chromite.lib import metrics
-except ImportError:
-    metrics = client_utils.metrics_mock
-
 
 class ServoFwVersionMissedError(Exception):
     """Raised when Available version is not detected."""
@@ -434,8 +429,6 @@ def update_servo_firmware(host,
         if not is_success_update:
             logging.info('Fail update firmware for %s', board)
             hostname = host.get_dut_hostname() or host.hostname
-            metrics.Counter('chromeos/autotest/servo/fw_update_fail'
-                            ).increment(fields={'host': hostname})
             fail_boards.append(board)
 
     if len(fail_boards) == 0:

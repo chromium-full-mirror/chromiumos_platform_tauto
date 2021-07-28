@@ -17,10 +17,6 @@ from autotest_lib.site_utils.admin_audit import constants
 from autotest_lib.site_utils.admin_audit import rpm_validator
 from autotest_lib.site_utils.admin_audit import servo_updater
 
-try:
-    from autotest_lib.utils.frozen_chromite.lib import metrics
-except ImportError:
-    metrics = client_utils.metrics_mock
 
 # Common status used for statistics.
 STATUS_FAIL = 'fail'
@@ -137,9 +133,6 @@ class VerifyServoUsb(base._BaseServoVerifier):
         except Exception as e:
             if 'Timeout encountered:' in str(e):
                 logging.info('Timeout during running action')
-                metrics.Counter(
-                    'chromeos/autotest/audit/servo/usb/timeout'
-                    ).increment(fields={'host': self._dut_host.hostname})
             else:
                 # badblocks generate errors when device not reachable or
                 # cannot read system information to execute process
