@@ -1,0 +1,14 @@
+# Copyright 2021 The Chromium OS Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+AUTHOR = "dbeckett"
+NAME = "infra_ServerFail"
+TIME = "SHORT"
+TEST_TYPE = "server"
+DOC = """Verify the server test correctly fails."""
+
+def run(machine):
+    job.run_test('infra_ServerFail')
+
+parallel_simple(run, machines)

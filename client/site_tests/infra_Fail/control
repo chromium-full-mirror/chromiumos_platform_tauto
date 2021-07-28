@@ -1,0 +1,19 @@
+# Copyright (c) 2011 The Chromium OS Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style license that can be
+# found in the LICENSE file.
+
+AUTHOR = "Chrome OS Team"
+NAME = "infra_Fail"
+PURPOSE = "Demonstrate a failing test."
+CRITERIA = "This test will always fail."
+TIME = "SHORT"
+TEST_CATEGORY = "General"
+TEST_CLASS = "infra"
+TEST_TYPE = "client"
+MAX_RESULT_SIZE_KB = 5000
+
+DOC = """
+This is a helper test that will succeed.
+"""
+
+job.run_test('infra_Fail')
