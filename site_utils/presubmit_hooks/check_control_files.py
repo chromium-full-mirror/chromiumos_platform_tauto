@@ -20,7 +20,6 @@ import subprocess
 
 import common
 from autotest_lib.client.common_lib import control_data
-from autotest_lib.server.cros.dynamic_suite import reporting_utils
 
 
 DEPENDENCY_ARC = 'arc'
@@ -274,12 +273,6 @@ def main():
             ctrl_data = control_data.parse_control(ctrl_file_path,
                                                    raise_warnings=True)
             test_name = os.path.basename(os.path.split(file_path)[0])
-            try:
-                reporting_utils.BugTemplate.validate_bug_template(
-                        ctrl_data.bug_template)
-            except AttributeError:
-                # The control file may not have bug template defined.
-                pass
 
             if not useflags:
                 useflags = GetUseFlags(args.overlay)

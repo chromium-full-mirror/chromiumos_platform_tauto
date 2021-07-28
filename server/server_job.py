@@ -57,6 +57,7 @@ from autotest_lib.server.hosts import shadowing_store
 from autotest_lib.server.hosts import factory as host_factory
 from autotest_lib.server.hosts import host_info
 from autotest_lib.server.hosts import ssh_multiplex
+from autotest_lib.site_utils import generate_test_report
 
 from six.moves import zip
 
@@ -120,21 +121,12 @@ def get_machine_dicts(machine_names, store_dir, in_lab, use_shadow_store,
 
     machine_dict_list = []
     for machine in machine_names:
-        if not in_lab:
-            afe_host = server_utils.EmptyAFEHost()
-            host_info_store = host_info.InMemoryHostInfoStore()
-            if host_attributes is not None:
-                afe_host.attributes.update(host_attributes)
-                info = host_info.HostInfo(attributes=host_attributes)
-                host_info_store.commit(info)
-        elif use_shadow_store:
-            afe_host = _create_afe_host(machine)
-            host_info_store = _create_afe_backed_host_info_store(store_dir,
-                                                                 machine)
-        else:
-            afe_host = server_utils.EmptyAFEHost()
-            host_info_store = _create_file_backed_host_info_store(store_dir,
-                                                                  machine)
+        afe_host = server_utils.EmptyAFEHost()
+        host_info_store = host_info.InMemoryHostInfoStore()
+        if host_attributes is not None:
+            afe_host.attributes.update(host_attributes)
+            info = host_info.HostInfo(attributes=host_attributes)
+            host_info_store.commit(info)
 
         machine_dict_list.append({
                 'hostname' : machine,
@@ -681,47 +673,14 @@ class server_job(base_job.base_job):
 
         @return boolean
         """
-        path = os.getcwd()
+        resdir = os.getcwd()
+        collector = generate_test_report.ResultCollector()
 
-        # TODO(ayatane): Copied from tko/parse.py.  Needs extensive refactor to
-        # make code reuse plausible.
-        # TODO (dbeckett): address the todo above, also, this will likely need
-        # to be fixed prior to tauto rollout, as tko/parsers are gone.
-        job_keyval = tko_models.job.read_keyval(path)
-        status_version = job_keyval.get("status_version", 0)
-
-        # parse out the job
-        parser = parser_lib.parser(status_version)
-        job = parser.make_job(path)
-        status_log = os.path.join(path, "status.log")
-        if not os.path.exists(status_log):
-            status_log = os.path.join(path, "status")
-        if not os.path.exists(status_log):
-            logging.warning("! Unable to parse job, no status file")
-            return True
-
-        # parse the status logs
-        status_lines = open(status_log).readlines()
-        parser.start(job)
-        tests = parser.end(status_lines)
-
-        # parser.end can return the same object multiple times, so filter out
-        # dups
-        job.tests = []
-        already_added = set()
-        for test in tests:
-            if test not in already_added:
-                already_added.add(test)
-                job.tests.append(test)
-
-        failed = False
-        for test in job.tests:
-            # The current job is still running and shouldn't count as failed.
-            # The parser will fail to parse the exit status of the job since it
-            # hasn't exited yet (this running right now is the job).
-            failed = failed or (test.status != 'GOOD'
-                                and not _is_current_server_job(test))
-        return failed
+        if not os.path.isdir(resdir):
+            raise FileNotFoundError('%r does not exist', resdir)
+        res = collector.RecursivelyCollectResults(resdir)
+        # if all result status are not True, there was a failure.
+        return not all([g['status'] for g in res])
 
 
     def _collect_crashes(self, namespace, collect_crashinfo):
@@ -1585,20 +1544,6 @@ def _is_current_server_job(test):
     @param test: test instance from tko parser.
     """
     return test.testname == 'SERVER_JOB'
-
-
-def _create_afe_host(hostname):
-    """Create an afe_host object backed by the AFE.
-
-    @param hostname: Name of the host for which we want the Host object.
-    @returns: An object of type frontend.AFE
-    """
-    afe = frontend_wrappers.RetryingAFE(timeout_min=5, delay_sec=10)
-    hosts = afe.get_hosts(hostname=hostname)
-    if not hosts:
-        raise error.AutoservError('No hosts named %s found' % hostname)
-
-    return hosts[0]
 
 
 def _create_file_backed_host_info_store(store_dir, hostname):
