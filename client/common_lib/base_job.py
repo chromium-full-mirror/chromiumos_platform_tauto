@@ -782,7 +782,6 @@ class base_job(object):
     testdir = _job_directory.property_factory('testdir')
     site_testdir = _job_directory.property_factory('site_testdir')
     bindir = _job_directory.property_factory('bindir')
-    profdir = _job_directory.property_factory('profdir')
     toolsdir = _job_directory.property_factory('toolsdir')
 
 

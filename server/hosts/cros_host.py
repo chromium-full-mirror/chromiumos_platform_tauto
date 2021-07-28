@@ -27,7 +27,6 @@ from autotest_lib.client.common_lib.cros import dev_server
 from autotest_lib.client.common_lib.cros import retry
 from autotest_lib.client.cros import constants as client_constants
 from autotest_lib.client.cros import cros_ui
-from autotest_lib.server import afe_utils
 from autotest_lib.server import utils as server_utils
 from autotest_lib.server.cros import provision
 from autotest_lib.server.cros.dynamic_suite import constants as ds_constants
@@ -446,28 +445,6 @@ class CrosHost(abstract_ssh.AbstractSSHHost):
             logging.error('Exception %s in initialize_btpeer', str(e))
 
 
-    def get_cros_repair_image_name(self):
-        """Get latest stable cros image name from AFE.
-
-        Use the board name from the info store. Should that fail, try to
-        retrieve the board name from the host's installed image itself.
-
-        @returns: current stable cros image name for this host.
-        """
-        info = self.host_info_store.get()
-        if not info.board:
-            logging.warn('No board label value found. Trying to infer '
-                         'from the host itself.')
-            try:
-                info.labels.append(self.get_board())
-            except (error.AutoservRunError, error.AutoservSSHTimeout) as e:
-                logging.error('Also failed to get the board name from the DUT '
-                              'itself. %s.', str(e))
-                raise error.AutoservError('Cannot determine board of the DUT'
-                                          ' while getting repair image name.')
-        return afe_utils.get_stable_cros_image_name_v2(info)
-
-
     def host_version_prefix(self, image):
         """Return version label prefix.
 
@@ -845,7 +822,6 @@ class CrosHost(abstract_ssh.AbstractSSHHost):
             raise error.TestError('Host %s does not have servo.' %
                                   self.hostname)
 
-        # Get the DUT board name from AFE.
         info = self.host_info_store.get()
         board = info.board
         model = info.model

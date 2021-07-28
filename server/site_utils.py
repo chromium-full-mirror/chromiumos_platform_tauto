@@ -8,20 +8,13 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import collections
 import contextlib
 import grp
-import six.moves.http_client
-import json
 import logging
 import os
-import random
 import re
-import time
 import traceback
-from six.moves import filter
-from six.moves import range
-from six.moves import urllib
+
 
 import common
 from autotest_lib.client.bin.result_tools import utils as result_utils
@@ -33,10 +26,6 @@ from autotest_lib.client.common_lib import error
 from autotest_lib.client.common_lib import file_utils
 from autotest_lib.client.common_lib import global_config
 from autotest_lib.client.common_lib import host_queue_entry_states
-from autotest_lib.client.common_lib import host_states
-from autotest_lib.server.cros import provision
-from autotest_lib.server.cros.dynamic_suite import constants
-from autotest_lib.server.cros.dynamic_suite import job_status
 
 
 CONFIG = global_config.global_config
@@ -130,115 +119,6 @@ def ParseBuildName(name):
     raise ParseBuildNameException('%s is a malformed build name.' % name)
 
 
-def get_labels_from_afe(hostname, label_prefix, afe):
-    """Retrieve a host's specific labels from the AFE.
-
-    Looks for the host labels that have the form <label_prefix>:<value>
-    and returns the "<value>" part of the label. None is returned
-    if there is not a label matching the pattern
-
-    @param hostname: hostname of given DUT.
-    @param label_prefix: prefix of label to be matched, e.g., |board:|
-    @param afe: afe instance.
-
-    @returns A list of labels that match the prefix or 'None'
-
-    """
-    labels = afe.get_labels(name__startswith=label_prefix,
-                            host__hostname__in=[hostname])
-    if labels:
-        return [l.name.split(label_prefix, 1)[1] for l in labels]
-
-
-def get_label_from_afe(hostname, label_prefix, afe):
-    """Retrieve a host's specific label from the AFE.
-
-    Looks for a host label that has the form <label_prefix>:<value>
-    and returns the "<value>" part of the label. None is returned
-    if there is not a label matching the pattern
-
-    @param hostname: hostname of given DUT.
-    @param label_prefix: prefix of label to be matched, e.g., |board:|
-    @param afe: afe instance.
-    @returns the label that matches the prefix or 'None'
-
-    """
-    labels = get_labels_from_afe(hostname, label_prefix, afe)
-    if labels and len(labels) == 1:
-        return labels[0]
-
-
-def get_board_from_afe(hostname, afe):
-    """Retrieve given host's board from its labels in the AFE.
-
-    Looks for a host label of the form "board:<board>", and
-    returns the "<board>" part of the label.  `None` is returned
-    if there is not a single, unique label matching the pattern.
-
-    @param hostname: hostname of given DUT.
-    @param afe: afe instance.
-    @returns board from label, or `None`.
-
-    """
-    return get_label_from_afe(hostname, constants.BOARD_PREFIX, afe)
-
-
-def get_build_from_afe(hostname, afe):
-    """Retrieve the current build for given host from the AFE.
-
-    Looks through the host's labels in the AFE to determine its build.
-
-    @param hostname: hostname of given DUT.
-    @param afe: afe instance.
-    @returns The current build or None if it could not find it or if there
-             were multiple build labels assigned to this host.
-
-    """
-    prefix = provision.CROS_VERSION_PREFIX
-    build = get_label_from_afe(hostname, prefix + ':', afe)
-    if build:
-        return build
-    return None
-
-
-# TODO(fdeng): fix get_sheriffs crbug.com/483254
-def get_sheriffs(lab_only=False):
-    """
-    Polls the javascript file that holds the identity of the sheriff and
-    parses it's output to return a list of chromium sheriff email addresses.
-    The javascript file can contain the ldap of more than one sheriff, eg:
-    document.write('sheriff_one, sheriff_two').
-
-    @param lab_only: if True, only pulls lab sheriff.
-    @return: A list of chroium.org sheriff email addresses to cc on the bug.
-             An empty list if failed to parse the javascript.
-    """
-    sheriff_ids = []
-    sheriff_js_list = _LAB_SHERIFF_JS.split(',')
-    if not lab_only:
-        sheriff_js_list.extend(_SHERIFF_JS.split(','))
-
-    for sheriff_js in sheriff_js_list:
-        try:
-            url_content = utils.urlopen('%s%s'% (
-                _CHROMIUM_BUILD_URL, sheriff_js)).read()
-        except (ValueError, IOError) as e:
-            logging.warning('could not parse sheriff from url %s%s: %s',
-                             _CHROMIUM_BUILD_URL, sheriff_js, str(e))
-        except (urllib.error.URLError, six.moves.http_client.HTTPException) as e:
-            logging.warning('unexpected error reading from url "%s%s": %s',
-                             _CHROMIUM_BUILD_URL, sheriff_js, str(e))
-        else:
-            ldaps = re.search(r"document.write\('(.*)'\)", url_content)
-            if not ldaps:
-                logging.warning('Could not retrieve sheriff ldaps for: %s',
-                                 url_content)
-                continue
-            sheriff_ids += ['%s@chromium.org' % alias.replace(' ', '')
-                            for alias in ldaps.group(1).split(',')]
-    return sheriff_ids
-
-
 def remote_wget(source_url, dest_path, ssh_cmd):
     """wget source_url from localhost to dest_path on remote host using ssh.
 
@@ -252,61 +132,6 @@ def remote_wget(source_url, dest_path, ssh_cmd):
     utils.run(wget_cmd)
 
 
-_MAX_LAB_STATUS_ATTEMPTS = 5
-def _get_lab_status(status_url):
-    """Grabs the current lab status and message.
-
-    @returns The JSON object obtained from the given URL.
-
-    """
-    retry_waittime = 1
-    for _ in range(_MAX_LAB_STATUS_ATTEMPTS):
-        try:
-            response = urllib.request.urlopen(status_url)
-        except IOError as e:
-            logging.debug('Error occurred when grabbing the lab status: %s.',
-                          e)
-            time.sleep(retry_waittime)
-            continue
-        # Check for successful response code.
-        if response.getcode() == 200:
-            return json.load(response)
-        time.sleep(retry_waittime)
-    return None
-
-
-def _decode_lab_status(lab_status, build):
-    """Decode lab status, and report exceptions as needed.
-
-    Take a deserialized JSON object from the lab status page, and
-    interpret it to determine the actual lab status.  Raise
-    exceptions as required to report when the lab is down.
-
-    @param build: build name that we want to check the status of.
-
-    @raises TestLabException Raised if a request to test for the given
-                             status and build should be blocked.
-    """
-    # First check if the lab is up.
-    if not lab_status['general_state'] in LAB_GOOD_STATES:
-        raise TestLabException('Chromium OS Test Lab is closed: '
-                               '%s.' % lab_status['message'])
-
-    # Check if the build we wish to use is disabled.
-    # Lab messages should be in the format of:
-    #    Lab is 'status' [regex ...] (comment)
-    # If the build name matches any regex, it will be blocked.
-    build_exceptions = re.search('\[(.*)\]', lab_status['message'])
-    if not build_exceptions or not build:
-        return
-    for build_pattern in build_exceptions.group(1).split():
-        if re.match(build_pattern, build):
-            raise TestLabException('Chromium OS Test Lab is closed: '
-                                   '%s matches %s.' % (
-                                           build, build_pattern))
-    return
-
-
 def is_in_lab():
     """Check if current Autotest instance is in lab
 
@@ -316,99 +141,11 @@ def is_in_lab():
     return test_server_name.startswith('cautotest')
 
 
-def check_lab_status(build):
-    """Check if the lab status allows us to schedule for a build.
-
-    Checks if the lab is down, or if testing for the requested build
-    should be blocked.
-
-    @param build: Name of the build to be scheduled for testing.
-
-    @raises TestLabException Raised if a request to test for the given
-                             status and build should be blocked.
-
-    """
-    # Ensure we are trying to schedule on the actual lab.
-    if not is_in_lab():
-        return
-
-    # Download the lab status from its home on the web.
-    status_url = CONFIG.get_config_value('CROS', 'lab_status_url')
-    json_status = _get_lab_status(status_url)
-    if json_status is None:
-        # We go ahead and say the lab is open if we can't get the status.
-        logging.warning('Could not get a status from %s', status_url)
-        return
-    _decode_lab_status(json_status, build)
-
-
 def host_in_lab(hostname):
     """Check if the execution is against a host in the lab"""
     return (not utils.in_moblab_ssp()
             and not lsbrelease_utils.is_moblab()
             and utils.host_is_in_lab_zone(hostname))
-
-
-def lock_host_with_labels(afe, lock_manager, labels):
-    """Lookup and lock one host that matches the list of input labels.
-
-    @param afe: An instance of the afe class, as defined in server.frontend.
-    @param lock_manager: A lock manager capable of locking hosts, eg the
-        one defined in server.cros.host_lock_manager.
-    @param labels: A list of labels to look for on hosts.
-
-    @return: The hostname of a host matching all labels, and locked through the
-        lock_manager. The hostname will be as specified in the database the afe
-        object is associated with, i.e if it exists in afe_hosts with a .cros
-        suffix, the hostname returned will contain a .cros suffix.
-
-    @raises: error.NoEligibleHostException: If no hosts matching the list of
-        input labels are available.
-    @raises: error.TestError: If unable to lock a host matching the labels.
-    """
-    potential_hosts = afe.get_hosts(multiple_labels=labels)
-    if not potential_hosts:
-        raise error.NoEligibleHostException(
-                'No devices found with labels %s.' % labels)
-
-    # This prevents errors where a fault might seem repeatable
-    # because we lock, say, the same packet capturer for each test run.
-    random.shuffle(potential_hosts)
-    for host in potential_hosts:
-        if lock_manager.lock([host.hostname]):
-            logging.info('Locked device %s with labels %s.',
-                         host.hostname, labels)
-            return host.hostname
-        else:
-            logging.info('Unable to lock device %s with labels %s.',
-                         host.hostname, labels)
-
-    raise error.TestError('Could not lock a device with labels %s' % labels)
-
-
-def get_test_views_from_tko(suite_job_id, tko):
-    """Get test name and result for given suite job ID.
-
-    @param suite_job_id: ID of suite job.
-    @param tko: an instance of TKO as defined in server/frontend.py.
-    @return: A defaultdict where keys are test names and values are
-             lists of test statuses, e.g.,
-             {'stub_Fail.Error': ['ERROR'. 'ERROR'],
-              'stub_Fail.NAError': ['TEST_NA'],
-              'stub_Fail.RetrySuccess': ['ERROR', 'GOOD'],
-              }
-    @raise: Exception when there is no test view found.
-
-    """
-    views = tko.run('get_detailed_test_views', afe_job_id=suite_job_id)
-    relevant_views = list(filter(job_status.view_is_relevant, views))
-    if not relevant_views:
-        raise Exception('Failed to retrieve job results.')
-
-    test_views = collections.defaultdict(list)
-    for view in relevant_views:
-        test_views[view['test_name']].append(view['status'])
-    return test_views
 
 
 def get_data_key(prefix, suite, build, board):
@@ -462,12 +199,6 @@ def is_shard():
     """
     hostname = CONFIG.get_config_value('SHARD', 'shard_hostname', default=None)
     return bool(hostname)
-
-
-def get_global_afe_hostname():
-    """Read the hostname of the global AFE from the global configuration."""
-    return CONFIG.get_config_value('SERVER', 'global_afe_hostname')
-
 
 def is_restricted_user(username):
     """Determines if a user is in a restricted group.
@@ -706,32 +437,6 @@ def get_creds_abspath(creds_file):
     return os.path.join(creds_dir, creds_file)
 
 
-def SetupTsMonGlobalState(*args, **kwargs):
-    """Import-safe wrap around chromite.lib.ts_mon_config's setup function.
-
-    @param *args: Args to pass through.
-    @param **kwargs: Kwargs to pass through.
-    """
-    try:
-        # TODO(crbug.com/739466) This module import is delayed because it adds
-        # 1-2 seconds to the module import time and most users of site_utils
-        # don't need it. The correct fix is to break apart site_utils into more
-        # meaningful chunks.
-        from autotest_lib.utils.frozen_chromite.lib import ts_mon_config
-    except ImportError as e:
-        logging.warn('Unable to import chromite. Monarch is disabled: %s', e)
-        return TrivialContextManager()
-
-    try:
-        context = ts_mon_config.SetupTsMonGlobalState(*args, **kwargs)
-        if hasattr(context, '__exit__'):
-            return context
-    except Exception as e:
-        logging.warning('Caught an exception trying to setup ts_mon, '
-                        'monitoring is disabled: %s', e, exc_info=True)
-    return TrivialContextManager()
-
-
 @contextlib.contextmanager
 def TrivialContextManager(*args, **kwargs):
     """Context manager that does nothing.
@@ -740,69 +445,6 @@ def TrivialContextManager(*args, **kwargs):
     @param **kwargs: Ignored kwargs.
     """
     yield
-
-
-def wait_for_idle_duts(duts, afe, max_wait=IDLE_DUT_WAIT_TIMEOUT):
-    """Wait for the hosts to all go idle.
-
-    @param duts: List of duts to check for idle state.
-    @param afe: afe instance.
-    @param max_wait: Max wait time in seconds to wait for duts to be idle.
-
-    @returns Boolean True if all hosts are idle or False if any hosts did not
-            go idle within max_wait.
-    """
-    start_time = time.time()
-    # We make a shallow copy since we're going to be modifying active_dut_list.
-    active_dut_list = duts[:]
-    while active_dut_list:
-        # Let's rate-limit how often we hit the AFE.
-        time.sleep(1)
-
-        # Check if we've waited too long.
-        if (time.time() - start_time) > max_wait:
-            return False
-
-        idle_duts = []
-        # Get the status for the duts and see if they're in the idle state.
-        afe_hosts = afe.get_hosts(active_dut_list)
-        idle_duts = [afe_host.hostname for afe_host in afe_hosts
-                     if afe_host.status in host_states.IDLE_STATES]
-
-        # Take out idle duts so we don't needlessly check them
-        # next time around.
-        for idle_dut in idle_duts:
-            active_dut_list.remove(idle_dut)
-
-        logging.info('still waiting for following duts to go idle: %s',
-                     active_dut_list)
-    return True
-
-
-@contextlib.contextmanager
-def lock_duts_and_wait(duts, afe, lock_msg='default lock message',
-                       max_wait=IDLE_DUT_WAIT_TIMEOUT):
-    """Context manager to lock the duts and wait for them to go idle.
-
-    @param duts: List of duts to lock.
-    @param afe: afe instance.
-    @param lock_msg: message for afe on locking this host.
-    @param max_wait: Max wait time in seconds to wait for duts to be idle.
-
-    @returns Boolean lock_success where True if all duts locked successfully or
-             False if we timed out waiting too long for hosts to go idle.
-    """
-    try:
-        locked_duts = []
-        duts.sort()
-        for dut in duts:
-            if afe.lock_host(dut, lock_msg, fail_if_locked=True):
-                locked_duts.append(dut)
-            else:
-                logging.info('%s already locked', dut)
-        yield wait_for_idle_duts(locked_duts, afe, max_wait)
-    finally:
-        afe.unlock_hosts(locked_duts)
 
 
 def _get_default_size_info(path):

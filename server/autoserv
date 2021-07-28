@@ -32,14 +32,9 @@ _CONFIG = global_config.global_config
 
 from autotest_lib.server import server_logging_config
 from autotest_lib.server import server_job, utils, autoserv_parser, autotest
-from autotest_lib.server import site_utils
 from autotest_lib.site_utils import job_directories
 from autotest_lib.client.common_lib import pidfile, logging_manager
 
-
-# Control segment to stage server-side package.
-STAGE_SERVER_SIDE_PACKAGE_CONTROL_FILE = server_job._control_segment_path(
-        'stage_server_side_package')
 
 # Command line to start servod in a moblab.
 START_SERVOD_CMD = 'sudo start servod BOARD=%s PORT=%s'
@@ -397,9 +392,6 @@ def run_autoserv(pid_file_manager, results, parser):
     exit_code = 0
     auto_start_servod = _CONFIG.get_config_value(
             'AUTOSERV', 'auto_start_servod', type=bool, default=False)
-
-    site_utils.SetupTsMonGlobalState('autoserv', indirect=False,
-                                     short_lived=True)
     try:
         try:
             if repair:

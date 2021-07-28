@@ -7,8 +7,7 @@
 import logging
 
 from PIL import Image
-
-from autotest_lib.client.cros.multimedia import image_generator
+from typing import Tuple
 
 
 def _unlevel(p):
@@ -25,6 +24,26 @@ def _unlevel(p):
     elif p > 255:
         p = 255
     return p
+
+
+def _get_extrema(image) -> Tuple[int, int]:
+    """Returns a 2-tuple containing minimum and maximum values of the image.
+
+    @param image: the calibration image projected by DUT.
+    @return a tuple of (minimum, maximum)
+    """
+    w, h = image.size
+    min_value = 255
+    max_value = 0
+    # scan the middle vertical line
+    x = w // 2
+    for i in range(0, h // 2):
+        v = image.getpixel((x, i))[0]
+        if v < min_value:
+            min_value = v
+        if v > max_value:
+            max_value = v
+    return (min_value, max_value)
 
 
 class CommonChameleonScreenCapturer(object):
@@ -49,7 +68,7 @@ class CommonChameleonScreenCapturer(object):
         image = self._chameleon_port.capture_screen()
 
         # unleveling from TV level [16, 235]
-        pmin, pmax = image_generator.ImageGenerator.get_extrema(image)
+        pmin, pmax = _get_extrema(image)
         if pmin > 10 and pmax < 240:
             logging.info(' (TV level: %d %d)', pmin, pmax)
             image = Image.eval(image, _unlevel)

@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
-import cStringIO, logging, os, sys, unittest
+import logging, os, sys, unittest
+from io import StringIO
 
 # direct imports; autotest_lib has not been setup while testing this.
 from common_lib.test_utils import mock
@@ -13,7 +14,7 @@ class LoggingErrorStderrTests(unittest.TestCase):
                                                     '..'))
         setup_modules.setup(autotest_dir, root_module_name='autotest_lib')
         self.god = mock.mock_god()
-        self.test_stderr = cStringIO.StringIO()
+        self.test_stderr = StringIO.StringIO()
         self.god.stub_with(sys, 'stderr', self.test_stderr)
         self.old_root_logging_level = logging.root.level
         logging.basicConfig(level=logging.ERROR)

@@ -81,22 +81,49 @@ class test_init(unittest.TestCase):
         """
 
         PUBLIC_ATTRIBUTES = set([
-            # standard directories
-            'autodir', 'clientdir', 'serverdir', 'resultdir', 'pkgdir',
-            'tmpdir', 'testdir', 'site_testdir', 'bindir',
-            'profdir', 'toolsdir',
+                # standard directories
+                'autodir',
+                'clientdir',
+                'serverdir',
+                'resultdir',
+                'pkgdir',
+                'tmpdir',
+                'testdir',
+                'site_testdir',
+                'bindir',
+                'toolsdir',
 
-            # other special attributes
-            'args', 'automatic_test_tag', 'control',
-            'default_profile_only', 'drop_caches',
-            'drop_caches_between_iterations', 'harness', 'hosts',
-            'logging', 'machines', 'num_tests_failed', 'num_tests_run',
-            'pkgmgr', 'profilers', 'resultdir', 'run_test_cleanup',
-            'sysinfo', 'tag', 'user', 'use_sequence_number',
-            'warning_loggers', 'warning_manager', 'label',
-            'parent_job_id', 'in_lab', 'machine_dict_list',
-            'max_result_size_KB', 'fast', 'extended_timeout'
-            ])
+                # other special attributes
+                'args',
+                'automatic_test_tag',
+                'control',
+                'default_profile_only',
+                'drop_caches',
+                'drop_caches_between_iterations',
+                'harness',
+                'hosts',
+                'logging',
+                'machines',
+                'num_tests_failed',
+                'num_tests_run',
+                'pkgmgr',
+                'profilers',
+                'resultdir',
+                'run_test_cleanup',
+                'sysinfo',
+                'tag',
+                'user',
+                'use_sequence_number',
+                'warning_loggers',
+                'warning_manager',
+                'label',
+                'parent_job_id',
+                'in_lab',
+                'machine_dict_list',
+                'max_result_size_KB',
+                'fast',
+                'extended_timeout'
+        ])
 
         OPTIONAL_ATTRIBUTES = set([
             'serverdir',
@@ -183,7 +210,6 @@ class test_initialize_dir_properties(unittest.TestCase):
 
         # check all the always-client dir properties
         self.assertEqual(self.cjob.bindir, self.sjob.bindir)
-        self.assertEqual(self.cjob.profdir, self.sjob.profdir)
         self.assertEqual(self.cjob.pkgdir, self.sjob.pkgdir)
 
 
