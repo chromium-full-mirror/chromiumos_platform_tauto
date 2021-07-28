@@ -10,7 +10,7 @@ from __future__ import print_function
 
 import unittest
 
-import boolparse_lib
+from autotest_lib.server.cros.dynamic_suite import boolparse_lib
 
 
 class ParserTest(unittest.TestCase):

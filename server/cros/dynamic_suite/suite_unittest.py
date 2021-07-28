@@ -1,4 +1,4 @@
-#!/usr/bin/python2
+#!/usr/bin/python3
 #
 # Copyright (c) 2012 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
@@ -12,7 +12,7 @@ from __future__ import division
 from __future__ import print_function
 
 from collections import OrderedDict
-import mox
+from mock import patch, call
 import os
 import six
 import shutil
@@ -23,17 +23,25 @@ import common
 
 from autotest_lib.client.common_lib import control_data
 from autotest_lib.client.common_lib.cros import dev_server
-from autotest_lib.server import frontend
 from autotest_lib.server.cros import provision
 from autotest_lib.server.cros.dynamic_suite import control_file_getter
 from autotest_lib.server.cros.dynamic_suite import suite as SuiteBase
 from autotest_lib.server.cros.dynamic_suite import suite_common
 from autotest_lib.server.cros.dynamic_suite.fakes import FakeControlData
 from autotest_lib.server.cros.dynamic_suite.fakes import FakeMultiprocessingPool
-from autotest_lib.server.cros.dynamic_suite.suite import Suite
 
 
-class SuiteTest(mox.MoxTestBase):
+class TypeMatcher(object):
+    """Matcher for object is of type."""
+
+    def __init__(self, expected_type):
+        self.expected_type = expected_type
+
+    def __eq__(self, other):
+        return isinstance(other, self.expected_type)
+
+
+class SuiteTest(unittest.TestCase):
     """Unit tests for dynamic_suite Suite class.
 
     @var _BUILDS: fake build
@@ -48,19 +56,16 @@ class SuiteTest(mox.MoxTestBase):
     _DEVSERVER_HOST = 'http://dontcare:8080'
     _FAKE_JOB_ID = 10
 
-
     def setUp(self):
         """Setup."""
         super(SuiteTest, self).setUp()
         self.maxDiff = None
         self.use_batch = suite_common.ENABLE_CONTROLS_IN_BATCH
         suite_common.ENABLE_CONTROLS_IN_BATCH = False
-        self.afe = self.mox.CreateMock(frontend.AFE)
-        self.tko = self.mox.CreateMock(frontend.TKO)
-
         self.tmpdir = tempfile.mkdtemp(suffix=type(self).__name__)
-
-        self.getter = self.mox.CreateMock(control_file_getter.ControlFileGetter)
+        getter_patch = patch.object(control_file_getter, 'ControlFileGetter')
+        self.getter = getter_patch.start()
+        self.addCleanup(getter_patch.stop)
         self.devserver = dev_server.ImageServer(self._DEVSERVER_HOST)
 
         self.files = OrderedDict(
@@ -86,13 +91,16 @@ class SuiteTest(mox.MoxTestBase):
             'with/profilers/...': FakeControlData(self._TAG, self._ATTR,
                                                   'gets filtered')}
 
+    def additional_mocking(self):
+        patcher = patch.object(control_data, 'parse_control_string')
+        self.cf_getter_string = patcher.start()
+        self.addCleanup(patcher.stop)
 
     def tearDown(self):
         """Teardown."""
         suite_common.ENABLE_CONTROLS_IN_BATCH = self.use_batch
         super(SuiteTest, self).tearDown()
         shutil.rmtree(self.tmpdir, ignore_errors=True)
-
 
     def expect_control_file_parsing(self, suite_name=_TAG):
         """Expect an attempt to parse the 'control files' in |self.files|.
@@ -102,7 +110,6 @@ class SuiteTest(mox.MoxTestBase):
         all_files = list(self.files.keys()) + list(self.files_to_filter.keys())
         self._set_control_file_parsing_expectations(False, all_files,
                                                     self.files, suite_name)
-
 
     def _set_control_file_parsing_expectations(self, already_stubbed,
                                                file_list, files_to_parse,
@@ -115,23 +122,22 @@ class SuiteTest(mox.MoxTestBase):
                                expect to get parsed.
         """
         if not already_stubbed:
-            self.mox.StubOutWithMock(control_data, 'parse_control_string')
+            self.additional_mocking()
+        patcher = patch.object(suite_common.multiprocessing, 'Pool')
+        self.mp_pool = patcher.start()
+        self.addCleanup(patcher.stop)
+        self.mp_pool.return_value = FakeMultiprocessingPool()
 
-        self.mox.StubOutWithMock(suite_common.multiprocessing, 'Pool')
-        suite_common.multiprocessing.Pool(
-            processes=suite_common.get_process_limit()).AndReturn(
-                FakeMultiprocessingPool())
-
-        self.getter.get_control_file_list(
-                suite_name=suite_name).AndReturn(file_list)
+        self.getter.get_control_file_list.return_value = file_list
+        get_control_file_contents_mock_list = []
+        parse_mock_list = []
         for file, data in six.iteritems(files_to_parse):
-            self.getter.get_control_file_contents(
-                    file).InAnyOrder().AndReturn(data.string)
-            control_data.parse_control_string(
-                    data.string,
-                    raise_warnings=True,
-                    path=file).InAnyOrder().AndReturn(data)
+            get_control_file_contents_mock_list.append(data.string)
 
+            parse_mock_list.append(data)
+
+        self.getter.get_control_file_contents.side_effect = get_control_file_contents_mock_list
+        self.cf_getter_string.side_effect = parse_mock_list
 
     def expect_control_file_parsing_in_batch(self, suite_name=_TAG):
         """Expect an attempt to parse the contents of all control files in
@@ -139,55 +145,60 @@ class SuiteTest(mox.MoxTestBase):
 
         @param suite_name: The suite name to parse control files for.
         """
-        self.getter = self.mox.CreateMock(control_file_getter.DevServerGetter)
-        self.mox.StubOutWithMock(control_data, 'parse_control_string')
+        DevServerGetter_patch = patch.object(control_file_getter,
+                                             'DevServerGetter')
+        self.getter = DevServerGetter_patch.start()
+        self.addCleanup(DevServerGetter_patch.stop)
 
-        self.mox.StubOutWithMock(suite_common.multiprocessing, 'Pool')
-        suite_common.multiprocessing.Pool(
-            processes=suite_common.get_process_limit()).AndReturn(
-                FakeMultiprocessingPool())
+        patcher = patch.object(suite_common.multiprocessing, 'Pool')
+        mp_pool = patcher.start()
+        self.addCleanup(patcher.stop)
+        mp_pool.return_value = FakeMultiprocessingPool()
 
         suite_info = {}
+        thel = []
+        expected_calls = []
         for k, v in six.iteritems(self.files):
             suite_info[k] = v.string
-            control_data.parse_control_string(
-                    v.string,
-                    raise_warnings=True,
-                    path=k).InAnyOrder().AndReturn(v)
+            thel.append(v)
+            expected_calls.append(call(v.string, raise_warnings=True, path=k))
+        self.cf_getter_string.side_effect = (thel)
         for k, v in six.iteritems(self.files_to_filter):
             suite_info[k] = v.string
         self.getter._dev_server = self._DEVSERVER_HOST
-        self.getter.get_suite_info(
-                suite_name=suite_name).AndReturn(suite_info)
-
+        self.getter.get_suite_info.return_value = suite_info
+        return expected_calls
 
     def testFindAllTestInBatch(self):
         """Test switch on enable_getting_controls_in_batch for function
         find_all_test."""
+        self.additional_mocking()
         self.use_batch = suite_common.ENABLE_CONTROLS_IN_BATCH
-        self.expect_control_file_parsing_in_batch()
+        expected_calls = self.expect_control_file_parsing_in_batch()
         suite_common.ENABLE_CONTROLS_IN_BATCH = True
 
-        self.mox.ReplayAll()
+        with patch.object(suite_common, '_should_batch_with') as sbw_mock:
+            sbw_mock.return_value = True
 
-        predicate = lambda d: d.suite == self._TAG
-        tests = SuiteBase.find_and_parse_tests(self.getter,
-                                               predicate,
-                                               self._TAG)
-        self.assertEquals(len(tests), 6)
-        self.assertTrue(self.files['one'] in tests)
-        self.assertTrue(self.files['two'] in tests)
-        self.assertTrue(self.files['three'] in tests)
-        self.assertTrue(self.files['five'] in tests)
-        self.assertTrue(self.files['six'] in tests)
-        self.assertTrue(self.files['seven'] in tests)
-        suite_common.ENABLE_CONTROLS_IN_BATCH = self.use_batch
+            predicate = lambda d: d.suite == self._TAG
+            tests = SuiteBase.find_and_parse_tests(self.getter, predicate,
+                                                   self._TAG)
+            self.assertEquals(len(tests), 6)
+            self.assertTrue(self.files['one'] in tests)
+            self.assertTrue(self.files['two'] in tests)
+            self.assertTrue(self.files['three'] in tests)
+            self.assertTrue(self.files['five'] in tests)
+            self.assertTrue(self.files['six'] in tests)
+            self.assertTrue(self.files['seven'] in tests)
+            suite_common.ENABLE_CONTROLS_IN_BATCH = self.use_batch
 
+        self.cf_getter_string.assert_has_calls(expected_calls, any_order=True)
 
     def testFindAndParseStableTests(self):
         """Should find only tests that match a predicate."""
+        self.additional_mocking()
+
         self.expect_control_file_parsing()
-        self.mox.ReplayAll()
 
         predicate = lambda d: d.text == self.files['two'].string
         tests = SuiteBase.find_and_parse_tests(self.getter,
@@ -196,7 +207,6 @@ class SuiteTest(mox.MoxTestBase):
         self.assertEquals(len(tests), 1)
         self.assertEquals(tests[0], self.files['two'])
 
-
     def testFindSuiteSyntaxErrors(self):
         """Check all control files for syntax errors.
 
@@ -204,6 +214,7 @@ class SuiteTest(mox.MoxTestBase):
         for syntax errors, by using the un-forgiving parser and pretending to
         look for all control files with the suite attribute.
         """
+
         autodir = os.path.abspath(
             os.path.join(os.path.dirname(__file__), '..', '..', '..'))
         fs_getter = SuiteBase.create_fs_getter(autodir)
@@ -211,11 +222,10 @@ class SuiteTest(mox.MoxTestBase):
         SuiteBase.find_and_parse_tests(fs_getter, predicate,
                                        forgiving_parser=False)
 
-
     def testFindAndParseTestsSuite(self):
         """Should find all tests that match a predicate."""
+        self.additional_mocking()
         self.expect_control_file_parsing()
-        self.mox.ReplayAll()
 
         predicate = lambda d: d.suite == self._TAG
         tests = SuiteBase.find_and_parse_tests(self.getter,
@@ -229,11 +239,10 @@ class SuiteTest(mox.MoxTestBase):
         self.assertTrue(self.files['six'] in tests)
         self.assertTrue(self.files['seven'] in tests)
 
-
     def testFindAndParseTestsAttr(self):
         """Should find all tests that match a predicate."""
+        self.additional_mocking()
         self.expect_control_file_parsing()
-        self.mox.ReplayAll()
 
         predicate = SuiteBase.matches_attribute_expression_predicate('attr:attr')
         tests = SuiteBase.find_and_parse_tests(self.getter,
@@ -248,37 +257,5 @@ class SuiteTest(mox.MoxTestBase):
         self.assertTrue(self.files['seven'] in tests)
 
 
-    def testAdHocSuiteCreation(self):
-        """Should be able to schedule an ad-hoc suite by specifying
-        a single test name."""
-        self.expect_control_file_parsing(suite_name='ad_hoc_suite')
-        self.mox.ReplayAll()
-        predicate = SuiteBase.test_name_equals_predicate('name-data_five')
-        suite = Suite.create_from_predicates([predicate], self._BUILDS,
-                                       self._BOARD, devserver=None,
-                                       cf_getter=self.getter,
-                                       afe=self.afe, tko=self.tko)
-
-        self.assertFalse(self.files['one'] in suite.tests)
-        self.assertFalse(self.files['two'] in suite.tests)
-        self.assertFalse(self.files['four'] in suite.tests)
-        self.assertTrue(self.files['five'] in suite.tests)
-
-
-    def mock_control_file_parsing(self):
-        """Fake out find_and_parse_tests(), returning content from |self.files|.
-        """
-        for test in self.files.values():
-            test.text = test.string  # mimic parsing.
-        self.mox.StubOutWithMock(SuiteBase, 'find_and_parse_tests')
-        SuiteBase.find_and_parse_tests(
-            mox.IgnoreArg(),
-            mox.IgnoreArg(),
-            mox.IgnoreArg(),
-            forgiving_parser=True,
-            run_prod_code=False,
-            test_args=None).AndReturn(list(self.files.values()))
-
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     unittest.main()

@@ -20,7 +20,6 @@ from autotest_lib.server.cros.dynamic_suite.fakes import FakeHost
 from autotest_lib.server.cros.dynamic_suite.host_spec import HostSpec
 from autotest_lib.server.cros.dynamic_suite import host_spec
 from autotest_lib.server.cros.dynamic_suite import tools
-from autotest_lib.server import frontend
 
 
 class DynamicSuiteToolsTest(unittest.TestCase):
