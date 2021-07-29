@@ -121,7 +121,7 @@ class MetadataTest(unittest.TestCase):
     def test_serialization(self):
         """Test a single control file gets properly serialized."""
         meta_data = generate_metadata.serialized_test_case_metadata(self.test1)
-        self.assertEqual(meta_data.test_case.id.value, 'fake_test1')
+        self.assertEqual(meta_data.test_case.id.value, 'tauto.fake_test1')
         self.assertEqual(meta_data.test_case.name, 'fake_test1')
         # verify tags
         expected_tags = set([

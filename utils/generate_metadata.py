@@ -21,8 +21,8 @@ if six.PY2:
 from autotest_lib.server.cros.dynamic_suite import control_file_getter
 from autotest_lib.client.common_lib import control_data
 
-from chromiumos.test.internal import test_case_metadata_pb2 as tc_metadata_pb
-from chromiumos.test.internal import test_harness_pb2 as th_pb
+from chromiumos.test.api import test_case_metadata_pb2 as tc_metadata_pb
+from chromiumos.test.api import test_harness_pb2 as th_pb
 from chromiumos.test.api import test_case_pb2 as tc_pb
 
 HARNESS = th_pb.TestHarness.Tauto()
@@ -92,7 +92,7 @@ def serialize_tags(data):
 
 def serialize_test_case(data):
     """Return a serialized api.TestCase obj."""
-    serialized_testcase_id = tc_pb.TestCase.Id(value=data.name)
+    serialized_testcase_id = tc_pb.TestCase.Id(value="tauto." + data.name)
     tags = serialize_tags(data)
     return tc_pb.TestCase(id=serialized_testcase_id, name=data.name, tags=tags)
 
