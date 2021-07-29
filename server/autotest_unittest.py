@@ -1,8 +1,9 @@
-#!/usr/bin/python2
+#!/usr/bin/python3
 #pylint: disable-msg=C0111
 __author__ = "raphtee@google.com (Travis Miller)"
 
 import unittest, os, tempfile, logging
+from io import StringIO
 
 import common
 from autotest_lib.server import autotest, utils, hosts, server_job, profilers
@@ -212,7 +213,7 @@ class TestAutotest(unittest.TestCase):
         c.get_config_value.expect_call("PACKAGES",
             'fetch_location', type=list, default=[]).and_return(['repo'])
 
-        cfile = self.god.create_mock_class(file, "file")
+        cfile = self.god.create_mock_class(StringIO, "StringIO")
         cfile_orig = "original control file"
         cfile_new = "args = []\njob.add_repository(['repo'])\n"
         cfile_new += cfile_orig

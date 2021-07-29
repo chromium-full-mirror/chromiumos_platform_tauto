@@ -1,4 +1,4 @@
-#!/usr/bin/python2
+#!/usr/bin/python3
 # Copyright 2020 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -29,7 +29,7 @@ class ConvertDataToStringTests(unittest.TestCase):
                 'Vydm9fdjQiLCJzeXNmc19wcm9kdWN0IjoiU2Vydm8gVjQifSwiY2hpbGRyZ'
                 'W4iOlt7InVzYl9odWJfcG9ydCI6IjYuNC4yIiwic2VyaWFsIjoiMDY4MUQw'
                 'M0EtOTJEQ0NENjQiLCJ0eXBlIjoiY2NkX2NyNTAiLCJzeXNmc19wcm9kdWN'
-                '0IjoiQ3I1MCJ9XX0=')
+                '0IjoiQ3I1MCJ9XX0=').encode()
         data = {
                 "main": {
                         "usb_hub_port": "6.4.1",
@@ -51,7 +51,7 @@ class ConvertDataToStringTests(unittest.TestCase):
     def test_expect_string_when_data_is_provided2(self):
         expected_string = (
                 'eyJtYWluIjp7InVzYl9odWJfcG9ydCI6IiIsInNlcmlhbCI6IiIsInR5cGU'
-                'iOiIiLCJzeXNmc19wcm9kdWN0IjoiIn0sImNoaWxkcmVuIjpbXX0=')
+                'iOiIiLCJzeXNmc19wcm9kdWN0IjoiIn0sImNoaWxkcmVuIjpbXX0=').encode()
         data = {
                 "main": {
                         "usb_hub_port": "",

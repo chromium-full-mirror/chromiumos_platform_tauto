@@ -324,9 +324,13 @@ class mock_god(object):
 
             @classmethod
             def make_new(typ, *args, **dargs):
-                obj = super(cls_sub, typ).__new__(typ, *args,
-                                                  **dargs)
-
+                # Python 3, object doesn't take params... sometimes. This
+                # is a bit of hack workaround...
+                try:
+                    obj = super(cls_sub, typ).__new__(typ, *args,
+                                                      **dargs)
+                except TypeError:
+                    obj = super(cls_sub, typ).__new__(typ)
                 typ.cls_count += 1
                 obj_name = "%s_%s" % (name, typ.cls_count)
                 for symbol in dir(obj):
