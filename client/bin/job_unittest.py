@@ -1,4 +1,4 @@
-#!/usr/bin/python2
+#!/usr/bin/python3
 # pylint: disable=missing-docstring
 
 import logging
@@ -320,7 +320,7 @@ class test_base_job(unittest.TestCase):
         # record
         which = "which"
         harness_args = ''
-        harness.select.expect_call(which, self.job, 
+        harness.select.expect_call(which, self.job,
                                    harness_args).and_return(None)
 
         # run and test
@@ -491,10 +491,13 @@ class test_base_job(unittest.TestCase):
         self._setup_check_post_reboot(mount_info, None)
 
         self.god.stub_function(self.job, "_record_reboot_failure")
-        self.job._record_reboot_failure.expect_call("sub",
-                "reboot.verify_config", "mounted partitions are different after"
-                " reboot (old entries: set([]), new entries: set([('/dev/hdb1',"
-                " '/mnt/hdb1')]))", running_id=None)
+        self.job._record_reboot_failure.expect_call(
+                "sub",
+                "reboot.verify_config",
+                "mounted partitions are different after"
+                " reboot (old entries: set(), new entries: {('/dev/hdb1',"
+                " '/mnt/hdb1')})",
+                running_id=None)
 
         # playback
         self.assertRaises(error.JobError, self.job._check_post_reboot, "sub")
