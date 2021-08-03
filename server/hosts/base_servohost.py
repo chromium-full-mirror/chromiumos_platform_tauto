@@ -10,17 +10,13 @@
 """This is a base host class for servohost and labstation."""
 
 
-import six.moves.http_client
 import logging
-import socket
-import six.moves.xmlrpc_client
 import time
 import os
 
 from autotest_lib.client.bin import utils
 from autotest_lib.client.common_lib import autotest_enum
 from autotest_lib.client.common_lib import error
-from autotest_lib.client.common_lib import hosts
 from autotest_lib.client.common_lib import lsbrelease_utils
 from autotest_lib.client.common_lib.cros import dev_server
 from autotest_lib.client.common_lib.cros import kernel_utils
@@ -29,7 +25,6 @@ from autotest_lib.server import autotest
 from autotest_lib.server import site_utils as server_utils
 from autotest_lib.server.cros import provisioner
 from autotest_lib.server.hosts import ssh_host
-from autotest_lib.site_utils.rpm_control_system import rpm_client
 
 
 class BaseServoHost(ssh_host.SSHHost):
@@ -399,18 +394,8 @@ class BaseServoHost(ssh_host.SSHHost):
 
         """
         if self.has_power():
-            try:
-                rpm_client.set_power(self, 'CYCLE')
-            except (socket.error, six.moves.xmlrpc_client.Error,
-                    six.moves.http_client.BadStatusLine,
-                    rpm_client.RemotePowerException) as e:
-                raise hosts.AutoservRepairError(
-                    'Power cycling %s failed: %s' % (self.hostname, e),
-                    'power_cycle_via_rpm_failed'
-                )
-        else:
-            logging.info('Skipping power cycling, not a lab device.')
-
+            # TODO b/195443964: Re-wire as needed once TLW is available.
+            logging.warning("Need TLW rpm_controller wiring.")
 
     def _servo_host_reboot(self):
         """Reboot this servo host because a reboot is requested."""

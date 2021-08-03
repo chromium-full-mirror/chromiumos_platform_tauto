@@ -8,13 +8,11 @@ import logging
 
 import common
 from autotest_lib.client.common_lib import error
-from autotest_lib.client.common_lib import utils as client_utils
 from autotest_lib.server.cros.storage import storage_validate as storage
 from autotest_lib.server.cros.servo.keyboard import servo_keyboard_flasher
 from autotest_lib.server.cros.repair import mac_address_helper
 from autotest_lib.site_utils.admin_audit import base
 from autotest_lib.site_utils.admin_audit import constants
-from autotest_lib.site_utils.admin_audit import rpm_validator
 from autotest_lib.site_utils.admin_audit import servo_updater
 
 
@@ -229,19 +227,6 @@ class VerifyServoFw(base._BaseServoVerifier):
         servo_updater.update_servo_firmware(
             self.get_host(),
             force_update=True)
-
-
-class VerifyRPMConfig(base._BaseDUTVerifier):
-    """Check RPM config of the setup.
-
-    This check run against RPM configs settings.
-    """
-
-    def _verify(self):
-        if not self.host_is_up():
-            logging.info('Host is down; Skipping the verification')
-            return
-        rpm_validator.verify_unsafe(self.get_host())
 
 
 class FlashServoKeyboardMapVerifier(base._BaseDUTVerifier):

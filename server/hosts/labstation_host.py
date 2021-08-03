@@ -17,7 +17,7 @@ from autotest_lib.server.cros.dynamic_suite import constants as ds_constants
 from autotest_lib.server.cros.dynamic_suite import tools
 from autotest_lib.client.common_lib.cros import dev_server
 from autotest_lib.server import utils as server_utils
-from autotest_lib.site_utils.rpm_control_system import rpm_client
+
 
 class LabstationHost(base_servohost.BaseServoHost):
     """Labstation specific host class"""
@@ -271,35 +271,3 @@ class LabstationHost(base_servohost.BaseServoHost):
         """Clean up all xxxx_reboot file after reboot."""
         cmd = 'rm %s*%s' % (self.TEMP_FILE_DIR, self.REBOOT_FILE_POSTFIX)
         self.run(cmd, ignore_status=True)
-
-    def rpm_power_on_and_wait(self, _rpm_client=None):
-        """Power on a labstation through RPM and wait for it to come up"""
-        return self.change_rpm_state_and_wait("ON", _rpm_client=_rpm_client)
-
-    def rpm_power_off_and_wait(self, _rpm_client=None):
-        """Power off a labstation through RPM and wait for it to shut down"""
-        return self.change_rpm_state_and_wait("OFF", _rpm_client=_rpm_client)
-
-    def change_rpm_state_and_wait(self, state, _rpm_client=None):
-        """Change the state of a labstation
-
-        @param state: on or off
-        @param _rpm_client: rpm_client module, to support testing
-        """
-        _rpm_client = _rpm_client or rpm_client
-        wait = {
-            "ON":  self.wait_up,
-            "OFF": self.wait_down,
-        }[state]
-        timeout = {
-            "ON": self.BOOT_TIMEOUT,
-            "OFF": self.WAIT_DOWN_REBOOT_TIMEOUT,
-        }[state]
-        _rpm_client.set_power(self, state)
-        if not wait(timeout=timeout):
-            msg = "%s didn't enter %s state in %s seconds" % (
-                getattr(self, 'hostname', None),
-                state,
-                timeout,
-            )
-            raise Exception(msg)

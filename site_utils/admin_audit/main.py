@@ -50,7 +50,6 @@ VERIFIER_MAP = {
         ACTION_FLASH_SERVO_KEYBOARD_MAP:
         verifiers.FlashServoKeyboardMapVerifier,
         ACTION_VERIFY_DUT_MACADDR: verifiers.VerifyDUTMacAddress,
-        ACTION_VERIFY_RPM_CONFIG: verifiers.VerifyRPMConfig,
 }
 
 # Actions required Servod service

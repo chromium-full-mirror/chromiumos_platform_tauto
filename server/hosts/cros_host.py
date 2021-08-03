@@ -43,7 +43,6 @@ from autotest_lib.server.hosts import cros_repair
 from autotest_lib.server.hosts import pdtester_host
 from autotest_lib.server.hosts import servo_host
 from autotest_lib.server.hosts import servo_constants
-from autotest_lib.site_utils.rpm_control_system import rpm_client
 from autotest_lib.site_utils.admin_audit import constants as audit_const
 from autotest_lib.site_utils.admin_audit import verifiers as audit_verify
 from six.moves import zip
@@ -1496,7 +1495,8 @@ class CrosHost(abstract_ssh.AbstractSSHHost):
         try:
             self.power_on()
             self._remove_rpm_changed_tag()
-        except rpm_client.RemotePowerException:
+        except Exception:
+            # TODO b/195443964: Re-wire as needed once TLW is available.
             logging.error('Failed to turn Power On for this host after '
                           'cleanup through the RPM Infrastructure.')
 
@@ -1516,16 +1516,13 @@ class CrosHost(abstract_ssh.AbstractSSHHost):
 
 
     def _remove_rpm_changed_tag(self):
-        info = self.host_info_store.get()
-        del info.attributes[self._RPM_OUTLET_CHANGED]
-        self.host_info_store.commit(info)
+        # TODO b/195443964: Re-wire as needed once TLW is available.
+        pass
 
 
     def _add_rpm_changed_tag(self):
-        info = self.host_info_store.get()
-        info.attributes[self._RPM_OUTLET_CHANGED] = 'true'
-        self.host_info_store.commit(info)
-
+        # TODO b/195443964: Re-wire as needed once TLW is available.
+        pass
 
 
     def _is_factory_image(self):
@@ -2245,7 +2242,7 @@ class CrosHost(abstract_ssh.AbstractSSHHost):
             if not self.has_power():
                 raise error.TestFail('DUT does not have RPM connected.')
             self._add_rpm_changed_tag()
-            rpm_client.set_power(self, state, timeout_mins=5)
+            # TODO b/195443964: Re-wire as needed once TLW is available.
 
 
     def power_off(self, power_method=None):
@@ -2365,7 +2362,7 @@ class CrosHost(abstract_ssh.AbstractSSHHost):
             self.power_on(power_method=power_method)
         else:
             self._add_rpm_changed_tag()
-            rpm_client.set_power(self, 'CYCLE')
+            # TODO b/195443964: Re-wire as needed once TLW is available.
 
 
     def get_platform_from_fwid(self):
