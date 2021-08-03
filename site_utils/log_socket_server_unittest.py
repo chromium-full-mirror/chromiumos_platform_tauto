@@ -1,4 +1,4 @@
-# Lint as: python2, python3
+# Lint as: python3
 # Copyright (c) 2014 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -9,7 +9,6 @@ from __future__ import print_function
 
 import logging
 import logging.handlers
-import mox
 import multiprocessing
 import tempfile
 import time
@@ -20,7 +19,7 @@ from autotest_lib.site_utils import log_socket_server
 from six.moves import range
 
 
-class TestLogSocketServer(mox.MoxTestBase):
+class TestLogSocketServer(unittest.TestCase):
     """Test LogSocketServer can start and save logs to a local file.
     """
 
