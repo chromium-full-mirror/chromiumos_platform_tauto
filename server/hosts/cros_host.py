@@ -39,7 +39,6 @@ from autotest_lib.server.hosts import base_label
 from autotest_lib.server.hosts import chameleon_host
 from autotest_lib.server.hosts import cros_constants
 from autotest_lib.server.hosts import cros_label
-from autotest_lib.server.hosts import cros_repair
 from autotest_lib.server.hosts import pdtester_host
 from autotest_lib.server.hosts import servo_host
 from autotest_lib.server.hosts import servo_constants
@@ -341,7 +340,7 @@ class CrosHost(abstract_ssh.AbstractSSHHost):
                                     See servo_host for details.
         """
         super(CrosHost, self)._initialize(hostname=hostname, *args, **dargs)
-        self._repair_strategy = cros_repair.create_cros_repair_strategy()
+        self._repair_strategy = None
         # hold special dut_state for repair process
         self._device_repair_state = None
         self.labels = base_label.LabelRetriever(cros_label.CROS_LABELS)
@@ -1325,34 +1324,9 @@ class CrosHost(abstract_ssh.AbstractSSHHost):
         self.host_info_store.commit(host_info)
 
     def repair(self):
-        """Attempt to get the DUT to pass `self.verify()`.
-
-        This overrides the base class function for repair; it does
-        not call back to the parent class, but instead relies on
-        `self._repair_strategy` to coordinate the verification and
-        repair steps needed to get the DUT working.
-        """
-        message = 'Beginning repair for host %s board %s model %s'
-        info = self.host_info_store.get()
-        message %= (self.hostname, info.board, info.model)
-        self.record('INFO', None, None, message)
-        profile_state = profile_constants.DUT_STATE_READY
-        # Initialize bluetooth peers
-        self.initialize_btpeer()
-        try:
-            self._repair_strategy.repair(self)
-        except hosts.AutoservVerifyDependencyError as e:
-            # TODO(otabek): remove when finish b/174191325
-            self._stat_if_pingable_but_not_sshable()
-            # We don't want flag a DUT as failed if only non-critical
-            # verifier(s) failed during the repair.
-            if e.is_critical():
-                profile_state = profile_constants.DUT_STATE_REPAIR_FAILED
-                self._reboot_labstation_if_needed()
-                self.try_set_device_needs_manual_repair()
-                raise
-        finally:
-            self.set_health_profile_dut_state(profile_state)
+        """Attempt to repair the DUT."""
+        # TODO b/195447992: Wire this into lab services.
+        logging.warning("Repair is being moved from built-in to lab services.")
 
     def get_verifier_state(self, tag):
         """Return the state of host verifier by tag.
