@@ -15,7 +15,6 @@ import common
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.common_lib import lsbrelease_utils
 from autotest_lib.server.hosts import cros_host
-from autotest_lib.server.hosts import cros_repair
 
 
 # Presence of any of these processes indicates that the host is up:
@@ -53,7 +52,7 @@ class JetstreamHost(cros_host.CrosHost):
         logging.debug('Initializing Jetstream host')
         super(JetstreamHost, self)._initialize(*args, **dargs)
         # Overwrite base class initialization
-        self._repair_strategy = cros_repair.create_jetstream_repair_strategy()
+        self._repair_strategy = None
 
     def get_os_type(self):
         return 'jetstream'

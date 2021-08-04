@@ -148,45 +148,6 @@ class DictFilteringTestCase(unittest.TestCase):
         host._servo_host.get_servo_state.assert_not_called()
         self.assertEqual(host.host_info_store.get().get_label_value(SERVO_STATE_PREFIX), '')
 
-    def test_repair_servo_set_servo_state_after_repair_when_repair_is_fail(self):
-        host = self.create_host()
-        host._servo_host.repair.side_effect = Exception('Something bad')
-
-        try:
-            host.repair_servo()
-            self.assertEqual("Exception is", 'expecting to raise')
-        except:
-            pass
-        host._servo_host.get_servo_state.assert_called()
-        self.assertEqual(host.host_info_store.get().get_label_value(SERVO_STATE_PREFIX), 'SOME_STATE')
-
-    def test_repair_servo_set_servo_state_after_repair_when_repair_is_not_fail(self):
-        host = self.create_host()
-        try:
-            host.repair_servo()
-        except:
-            self.assertEqual("Exception is not", 'expected')
-            pass
-        host._servo_host.get_servo_state.assert_called()
-        self.assertEqual(host.host_info_store.get().get_label_value(SERVO_STATE_PREFIX), 'SOME_STATE')
-
-    def test_set_servo_host_update_servo_state_when_host_exist(self):
-        host = self.create_host()
-        host._servo_host = mock.Mock()
-        servo = mock.Mock()
-        servo.get_servo_type.return_value = None
-        host._servo_host.get_servo.return_value = servo
-        host._servo_host.get_servo_state.return_value = 'SOME_STATE'
-        self.assertEqual(host.host_info_store.get().get_label_value(SERVO_STATE_PREFIX), '')
-
-        try:
-            host.repair_servo()
-        except:
-            self.assertEqual("Exception is not", 'expected')
-            pass
-        host._servo_host.get_servo_state.assert_called()
-        self.assertEqual(host.host_info_store.get().get_label_value(SERVO_STATE_PREFIX), 'SOME_STATE')
-
     def test_set_servo_host_use_passed_servo_state_when_host_is_None(self):
         host = self.create_host()
 

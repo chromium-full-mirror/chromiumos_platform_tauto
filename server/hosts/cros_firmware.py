@@ -49,7 +49,7 @@ import common
 from autotest_lib.client.common_lib import global_config
 from autotest_lib.client.common_lib import hosts
 from autotest_lib.server import afe_utils
-from autotest_lib.server.hosts import repair_utils
+from autotest_lib.server import tauto_warnings
 from autotest_lib.server.hosts import cros_constants
 
 from autotest_lib.utils.frozen_chromite.lib import timeout_util
@@ -232,7 +232,7 @@ class FaftFirmwareRepair(FirmwareRepair):
     """
 
     def repair(self, host):
-        repair_utils.require_servo(host, ignore_state=True)
+        tauto_warnings.lab_services_warn_and_error("Require servo", err=False)
         build = self._get_faft_stable_build(host)
         if build:
             self._run_faft_repair(host, build)
@@ -252,70 +252,6 @@ class FaftFirmwareRepair(FirmwareRepair):
     @property
     def description(self):
         return 'Re-install the stable firmware(faft) via servo'
-
-
-class GeneralFirmwareRepair(FirmwareRepair):
-    """Reinstall the firmware for non-faft DUTs.
-    We need different RepairAction for non firmware testing DUT because
-    we want only try re-install firmware if all other RepairAction could
-    not restore ssh capability to the DUT.
-    """
-
-    def repair(self, host):
-        repair_utils.require_servo(host, ignore_state=True)
-        build = self._get_os_stable_build(host)
-        if not build:
-            raise hosts.AutoservRepairError(
-                    'Failed to find stable_version from host_info.',
-                    'cannot find stable_version')
-        self._run_general_repair(host, build)
-
-    def _is_applicable(self, host):
-        if _is_firmware_testing_device(host):
-            return False
-        if not host.servo:
-            logging.info(
-                    'The current servo state of %s is not met the'
-                    ' minimum requirement to flash firmware.', host.hostname)
-        # Flash firmware via servo is consider an expansive opertation, so we
-        # want to check repair data from previous repairs to determine if
-        # firmware repair is need.
-        dhp = host.health_profile
-        if not dhp:
-            logging.info('Device health profile is not available, cannot'
-                         ' determine if firmware repair is needed.')
-            return False
-        repair_fail_count = dhp.get_repair_fail_count()
-        if repair_fail_count < 2:
-            # We want to start with a more conservative strategy, so only try
-            # this action on DUTs that failed repair at least twice.
-            # @TODO(xianuowang@) adjust or remove this threshold.
-            logging.info(
-                    'Firmware repair will only applies to DUT that'
-                    ' failed at least two AdminRepair, current fail'
-                    ' count: %s', repair_fail_count)
-            return False
-        flashed_build = dhp.get_firmware_stable_version()
-        candidate_build = self._get_os_stable_build(host)
-        # If we had an success firmware flash in this repair loop,
-        # there is no need to retry flash the same firmware build.
-        if (dhp.get_succeed_repair_action(self.tag) > 0
-                    and flashed_build == candidate_build):
-            logging.info(
-                    'Firmware from %s has been already installed on %s,'
-                    ' no need to retry.', flashed_build, host.hostname)
-            return False
-        if (dhp.get_failed_repair_action(self.tag) > 2
-                    and flashed_build == candidate_build):
-            logging.info(
-                    'Firmware from %s has been attempted and failed 3 '
-                    'times, no need to retry.', flashed_build)
-            return False
-        return True
-
-    @property
-    def description(self):
-        return 'Re-install the stable firmware(non-faft) via servo'
 
 
 class FirmwareVersionVerifier(hosts.Verifier):

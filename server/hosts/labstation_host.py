@@ -8,15 +8,16 @@ import logging
 
 from autotest_lib.client.common_lib import error
 from autotest_lib.server import afe_utils
+from autotest_lib.server import tauto_warnings
 from autotest_lib.server.hosts import base_label
 from autotest_lib.server.hosts import cros_label
-from autotest_lib.server.hosts import labstation_repair
 from autotest_lib.server.cros import provision
 from autotest_lib.server.hosts import base_servohost
 from autotest_lib.server.cros.dynamic_suite import constants as ds_constants
 from autotest_lib.server.cros.dynamic_suite import tools
 from autotest_lib.client.common_lib.cros import dev_server
 from autotest_lib.server import utils as server_utils
+
 
 
 class LabstationHost(base_servohost.BaseServoHost):
@@ -53,14 +54,11 @@ class LabstationHost(base_servohost.BaseServoHost):
             return False
         return result.exit_status == 0
 
-
     def _initialize(self, hostname, *args, **dargs):
         super(LabstationHost, self)._initialize(hostname=hostname,
                                                 *args, **dargs)
-        self._repair_strategy = (
-            labstation_repair.create_labstation_repair_strategy())
+        self._repair_strategy = None
         self.labels = base_label.LabelRetriever(cros_label.LABSTATION_LABELS)
-
 
     def is_reboot_requested(self):
         """Check if a reboot is requested for this labstation, the reboot can
@@ -91,7 +89,6 @@ class LabstationHost(base_servohost.BaseServoHost):
         else:
             return False
 
-
     def try_reboot(self):
         """Try to reboot the labstation if it's safe to do(no servo in use,
          and not processing updates), and cleanup reboot control file.
@@ -114,15 +111,12 @@ class LabstationHost(base_servohost.BaseServoHost):
         logging.info('Cleaning up reboot control files.')
         self._cleanup_post_reboot()
 
-
     def get_labels(self):
         """Return the detected labels on the host."""
         return self.labels.get_labels(self)
 
-
     def get_os_type(self):
         return 'labstation'
-
 
     def verify_job_repo_url(self, tag=''):
         """
@@ -164,7 +158,6 @@ class LabstationHost(base_servohost.BaseServoHost):
 
         ds.stage_artifacts(image_name, ['autotest_packages'])
 
-
     def host_version_prefix(self, image):
         """Return version label prefix.
 
@@ -176,7 +169,6 @@ class LabstationHost(base_servohost.BaseServoHost):
         @returns: A prefix string for the image type.
         """
         return provision.get_version_label_prefix(image)
-
 
     def stage_server_side_package(self, image=None):
         """Stage autotest server-side package on devserver.
@@ -225,15 +217,13 @@ class LabstationHost(base_servohost.BaseServoHost):
         return '%s/static/%s/%s' % (ds.url(), image_name,
                                     'autotest_server_package.tar.bz2')
 
-
     def repair(self):
         """Attempt to repair a labstation."""
         message = 'Beginning repair for host %s board %s model %s'
         info = self.host_info_store.get()
         message %= (self.hostname, info.board, info.model)
         self.record('INFO', None, None, message)
-        self._repair_strategy.repair(self)
-
+        tauto_warnings.lab_services_warn_and_error("Labstation repair")
 
     def update_cros_version_label(self):
         """Update cros-version label on labstation"""
@@ -247,11 +237,9 @@ class LabstationHost(base_servohost.BaseServoHost):
             return
         afe_utils.add_provision_labels(self, self.VERSION_PREFIX, image_name)
 
-
     def _validate_uptime(self):
         return (float(self.check_uptime()) >
                 self.UP_TIME_THRESH_HOLD_HOURS * 3600)
-
 
     def _is_servo_in_use(self):
         """Determine if there are any DUTs currently running task that uses
@@ -265,7 +253,6 @@ class LabstationHost(base_servohost.BaseServoHost):
                                         self.IN_USE_FILE_EXPIRE_MINS)
         result = self.run(cmd, ignore_status=True)
         return bool(result.stdout)
-
 
     def _cleanup_post_reboot(self):
         """Clean up all xxxx_reboot file after reboot."""

@@ -30,8 +30,8 @@ from autotest_lib.client.common_lib import hosts
 from autotest_lib.client.common_lib import lsbrelease_utils
 from autotest_lib.client.common_lib.cros import retry
 from autotest_lib.server import crashcollect
+from autotest_lib.server import tauto_warnings
 from autotest_lib.server.cros.servo import servo
-from autotest_lib.server.hosts import servo_repair
 from autotest_lib.server.hosts import base_servohost
 from autotest_lib.server.hosts import servo_constants
 from autotest_lib.server.cros.faft.utils import config
@@ -225,8 +225,7 @@ class ServoHost(base_servohost.BaseServoHost):
                         'Unexpected error while ensure labstation'
                         ' readiness; %s', str(e))
 
-        self._repair_strategy = (
-                servo_repair.create_servo_repair_strategy())
+        self._repair_strategy = None
 
     def __str__(self):
         return "<%s '%s:%s'>" % (
@@ -324,19 +323,7 @@ class ServoHost(base_servohost.BaseServoHost):
         message = 'Beginning verify for servo host %s port %s serial %s'
         message %= (self.hostname, self.servo_port, self.servo_serial)
         self.record('INFO', None, None, message)
-        try:
-            self._repair_strategy.verify(self, silent)
-            self._servo_state = servo_constants.SERVO_STATE_WORKING
-            self.record('INFO', None, None,
-                        'ServoHost verify set servo_state as WORKING')
-        except Exception as e:
-            if not self.is_localhost():
-                self._servo_state = self.determine_servo_state()
-                self.record('INFO', None, None,
-                            'ServoHost verify set servo_state as %s'
-                            % self._servo_state)
-            if self._is_critical_error(e):
-                raise
+        tauto_warnings.lab_services_warn_and_error("Verify Servo state")
 
     def _get_default_usbkey_mount_path(self):
         return '/media/servo_usb/%s' % self.servo_port
@@ -556,25 +543,7 @@ class ServoHost(base_servohost.BaseServoHost):
         message = 'Beginning repair for servo host %s port %s serial %s'
         message %= (self.hostname, self.servo_port, self.servo_serial)
         self.record('INFO', None, None, message)
-        try:
-            self._repair_strategy.repair(self, silent)
-            self._servo_state = servo_constants.SERVO_STATE_WORKING
-            self.record('INFO', None, None,
-                        'ServoHost repair set servo_state as WORKING')
-            # If target is a labstation then try to withdraw any existing
-            # reboot request created by this servo because it passed repair.
-            if self.is_labstation():
-                self.withdraw_reboot_request()
-        except Exception as e:
-            if not self.is_localhost():
-                self._servo_state = self.determine_servo_state()
-                self.record('INFO', None, None,
-                            'ServoHost repair set servo_state as %s'
-                            % self._servo_state)
-            if self._is_critical_error(e):
-                self.disconnect_servo()
-                self.stop_servod()
-                raise
+        tauto_warnings.lab_services_warn_and_error("Servo repair")
 
     def _is_critical_error(self, error):
         if (isinstance(error, hosts.AutoservVerifyDependencyError)
@@ -1287,14 +1256,14 @@ class ServoHost(base_servohost.BaseServoHost):
 
         @returns: bool or None
         """
-        return self._repair_strategy.verifier_is_good(tag)
+        tauto_warnings.lab_services_warn_and_error("Servo verify state")
 
     def get_repair_strategy_node(self, tag):
         """Return the instance of verifier/repair node for host by tag.
 
         @returns: _DependencyNode or None
         """
-        return self._repair_strategy.node_by_tag(tag)
+        tauto_warnings.lab_services_warn_and_error("Servo node")
 
     def determine_servo_state(self):
         """Determine servo state based on the failed verifier.

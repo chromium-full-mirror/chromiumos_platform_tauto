@@ -519,6 +519,11 @@ class TLSConnectionError(AutoservError):
     pass
 
 
+class LabServicesNotWired(NotImplementedError):
+    """Raised when a lab services call is not yet implemented."""
+    pass
+
+
 # This MUST remain at the end of the file.
 # Limit 'from error import *' to only import the exception instances.
 for _name, _thing in list(locals().items()):

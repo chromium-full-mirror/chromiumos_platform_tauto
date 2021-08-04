@@ -17,10 +17,8 @@ from autotest_lib.client.common_lib import error, global_config
 from autotest_lib.client.common_lib.cros import retry
 from autotest_lib.server.cros.dynamic_suite import frontend_wrappers
 from autotest_lib.server.hosts import cros_host
-from autotest_lib.server.hosts import cros_repair
 
 from autotest_lib.utils.frozen_chromite.lib import timeout_util
-import six
 
 AUTOTEST_INSTALL_DIR = global_config.global_config.get_config_value(
         'SCHEDULER', 'drone_installation_directory')
@@ -101,7 +99,7 @@ class MoblabHost(cros_host.CrosHost):
         # TODO(jrbarnette):  Our superclass already initialized
         # _repair_strategy, and now we're re-initializing it here.
         # That's awkward, if not actually wrong.
-        self._repair_strategy = cros_repair.create_moblab_repair_strategy()
+        self._repair_strategy = None
         self.timeout_min = dargs.get('rpc_timeout_min', 1)
         self._initialize_frontend_rpcs(self.timeout_min)
 
