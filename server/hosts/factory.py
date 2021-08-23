@@ -18,11 +18,7 @@ from autotest_lib.server import utils as server_utils
 from autotest_lib.server.cros.dynamic_suite import constants
 from autotest_lib.server.hosts import cros_host
 from autotest_lib.server.hosts import host_info
-from autotest_lib.server.hosts import jetstream_host
-from autotest_lib.server.hosts import moblab_host
-from autotest_lib.server.hosts import gce_host
 from autotest_lib.server.hosts import ssh_host
-from autotest_lib.server.hosts import labstation_host
 from autotest_lib.server.hosts import file_store
 
 
@@ -41,19 +37,11 @@ _started_hostnames = set()
 # A list of all the possible host types, ordered according to frequency of
 # host types in the lab, so the more common hosts don't incur a repeated ssh
 # overhead in checking for less common host types.
-host_types = [cros_host.CrosHost, labstation_host.LabstationHost,
-              moblab_host.MoblabHost, jetstream_host.JetstreamHost,
-              gce_host.GceHost]
-OS_HOST_DICT = {'cros': cros_host.CrosHost,
-                'jetstream': jetstream_host.JetstreamHost,
-                'moblab': moblab_host.MoblabHost,
-                'labstation': labstation_host.LabstationHost}
+host_types = [cros_host.CrosHost]
+OS_HOST_DICT = {'cros': cros_host.CrosHost}
 
 LOOKUP_DICT = {
         'CrosHost': cros_host.CrosHost,
-        'JetstreamHost': jetstream_host.JetstreamHost,
-        'MoblabHost': moblab_host.MoblabHost,
-        'LabstationHost': labstation_host.LabstationHost
 }
 
 # Timeout for early connectivity check to the host, in seconds.
