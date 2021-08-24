@@ -28,7 +28,11 @@ from autotest_lib.client.common_lib import seven
 from autotest_lib.client.common_lib import utils
 from autotest_lib.client.common_lib.cros import retry
 
-# TODO(cmasone): redo this class using requests module; http://crosbug.com/30107
+
+try:
+    from autotest_lib.utils.frozen_chromite.lib import metrics
+except ImportError:
+    metrics = utils.metrics_mock
 
 
 CONFIG = global_config.global_config
@@ -150,6 +154,7 @@ class MarkupStripper(six.moves.html_parser.HTMLParser):
     def __init__(self):
         self.reset()
         self.fed = []
+        self.convert_charrefs = True
 
 
     def handle_data(self, d):
@@ -299,6 +304,11 @@ def remote_devserver_call(timeout_min=DEVSERVER_IS_STAGING_RETRY_MIN,
 
                     logging.debug('RPC call %s has timed out on devserver %s.',
                                   label, dev_server)
+                    c = metrics.Counter(
+                            'chromeos/autotest/devserver/call_timeout')
+                    c.increment(fields={'dev_server': dev_server,
+                                        'healthy': label})
+
                 raise
 
         return metrics_wrapper
@@ -498,14 +508,19 @@ class DevServer(object):
         @return: True if devserver is healthy. Return False otherwise.
 
         """
+        c = metrics.Counter('chromeos/autotest/devserver/devserver_healthy')
+        reason = ''
+        healthy = False
         load = cls.get_devserver_load(devserver, timeout_min=timeout_min)
         try:
             if not load:
                 # Failed to get the load of devserver.
+                reason = '(1) Failed to get load.'
                 return False
 
             apache_ok = cls.is_apache_client_count_ok(load)
             if not apache_ok:
+                reason = '(2) Apache client count too high.'
                 logging.error('Devserver check_health failed. Live Apache client '
                               'count is too high: %d.',
                               load[cls.APACHE_CLIENT_COUNT])
@@ -513,13 +528,24 @@ class DevServer(object):
 
             disk_ok = cls.is_free_disk_ok(load)
             if not disk_ok:
+                reason = '(3) Disk space too low.'
                 logging.error('Devserver check_health failed. Free disk space is '
                               'low. Only %dGB is available.',
                               load[cls.FREE_DISK])
+            healthy = bool(disk_ok)
             return disk_ok
-        except:
-            # TODO, probabaly figure out if there is anything real here.
-            pass
+        finally:
+            c.increment(fields={'dev_server': cls(devserver).resolved_hostname,
+                                'healthy': healthy,
+                                'reason': reason})
+            # Monitor how many AU processes the devserver is currently running.
+            if load is not None and load.get(DevServer.AU_PROCESS):
+                c_au = metrics.Gauge(
+                        'chromeos/autotest/devserver/devserver_au_count')
+                c_au.set(
+                    load.get(DevServer.AU_PROCESS),
+                    fields={'dev_server': cls(devserver).resolved_hostname})
+
 
     @staticmethod
     def _build_call(host, method, **kwargs):
@@ -650,6 +676,10 @@ class DevServer(object):
         @return: A list of devservers not in any restricted subnet.
 
         """
+        if not restricted_subnets:
+            return cls.servers()
+
+        metrics.Counter('chromeos/autotest/devserver/unrestricted_hotfix')
         return cls.servers()
 
     @classmethod
@@ -789,6 +819,9 @@ class DevServer(object):
                          '%s. (dut hostname: %s)' %
                          (subnet, tried_devservers, hostname))
             logging.error(error_msg)
+            c = metrics.Counter(
+                    'chromeos/autotest/devserver/subnet_without_devservers')
+            c.increment(fields={'subnet': subnet, 'hostname': str(hostname)})
             raise DevServerException(error_msg)
 
 
@@ -834,13 +867,18 @@ class CrashServer(DevServer):
         except ImportError:
             logging.warning("Can't 'import requests' to connect to dev server.")
             return ''
+        f = {'dev_server': self.resolved_hostname}
+        c = metrics.Counter('chromeos/autotest/crashserver/symbolicate_dump')
+        c.increment(fields=f)
         # Symbolicate minidump.
-        call = self.build_call('symbolicate_dump',
-                               archive_url=_get_image_storage_server() + build)
-        request = requests.post(
-                call, files={'minidump': open(minidump_path, 'rb')})
-        if request.status_code == requests.codes.OK:
-            return request.text
+        m = 'chromeos/autotest/crashserver/symbolicate_dump_duration'
+        with metrics.SecondsTimer(m, fields=f):
+            call = self.build_call('symbolicate_dump',
+                                   archive_url=_get_image_storage_server() + build)
+            request = requests.post(
+                    call, files={'minidump': open(minidump_path, 'rb')})
+            if request.status_code == requests.codes.OK:
+                return request.text
 
         error_fd = six.StringIO(request.text)
         raise urllib.error.HTTPError(
@@ -933,6 +971,8 @@ class ImageServerBase(DevServer):
             logging.debug('Error occurred with exit_code %d when executing the '
                           'ssh call: %s.', e.result_obj.exit_status,
                           e.result_obj.stderr)
+            c = metrics.Counter('chromeos/autotest/devserver/ssh_failure')
+            c.increment(fields={'dev_server': hostname})
             raise
         response = result.stdout
 
@@ -1157,14 +1197,23 @@ class ImageServerBase(DevServer):
                 arguments.update(kwargs)
             f = {'artifacts': artifacts_arg,
                  'dev_server': self.resolved_hostname}
-            self.call_and_wait(call_name='stage', error_message=error_message,
-                               **arguments)
+            with metrics.SecondsTimer(
+                    'chromeos/autotest/devserver/stage_artifact_duration',
+                    fields=f):
+                self.call_and_wait(call_name='stage', error_message=error_message,
+                                   **arguments)
             logging.info('Finished staging artifacts: %s', staging_info)
             success = True
         except (bin_utils.TimeoutError, error.TimeoutException):
             logging.error('stage_artifacts timed out: %s', staging_info)
             raise DevServerException(
                     'stage_artifacts timed out: %s' % staging_info)
+        finally:
+            f = {'success': success,
+                 'artifacts': artifacts_arg,
+                 'dev_server': self.resolved_hostname}
+            metrics.Counter('chromeos/autotest/devserver/stage_artifact'
+                            ).increment(fields=f)
 
 
     def call_and_wait(self, *args, **kwargs):
