@@ -1,4 +1,4 @@
-#!/usr/bin/python2
+#!/usr/bin/python3
 # Copyright 2019 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -111,4 +111,4 @@ class TelemetryRunnerTestCase(unittest.TestCase):
         self.assertEqual(chartjson_dumps, chartjson_dumps2)
 
 if __name__ == '__main__':
-  unittest.main()
+    unittest.main()

@@ -1,4 +1,4 @@
-#!/usr/bin/python2
+#!/usr/bin/python3
 # Copyright 2009 Google Inc. Released under the GPL v2
 
 from __future__ import absolute_import

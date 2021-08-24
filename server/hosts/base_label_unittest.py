@@ -1,4 +1,4 @@
-#!/usr/bin/python2
+#!/usr/bin/python3
 # Copyright 2016 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -11,7 +11,7 @@ from autotest_lib.server import utils
 from autotest_lib.server.hosts import host_info
 from autotest_lib.server.hosts import base_label
 
- # pylint: disable=missing-docstring
+# pylint: disable=missing-docstring
 
 
 class TestBaseLabel(base_label.BaseLabel):
@@ -191,4 +191,3 @@ class LabelRetrieverUnittests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
-
