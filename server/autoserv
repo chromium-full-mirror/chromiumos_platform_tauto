@@ -32,7 +32,6 @@ _CONFIG = global_config.global_config
 
 from autotest_lib.server import server_logging_config
 from autotest_lib.server import server_job, utils, autoserv_parser, autotest
-from autotest_lib.site_utils import job_directories
 from autotest_lib.client.common_lib import pidfile, logging_manager
 
 
@@ -226,10 +225,6 @@ def run_autoserv(pid_file_manager, results, parser):
     # process (drone manager call) exits.
     if os.getpid() != os.getpgid(0):
         os.setsid()
-
-    # handle_sigterm.
-    job_or_task_id = job_directories.get_job_id_or_task_id(
-            parser.options.results)
 
     # Implement SIGTERM handler
     def handle_sigterm(signum, frame):

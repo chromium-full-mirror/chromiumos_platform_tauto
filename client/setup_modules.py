@@ -12,7 +12,7 @@ sys.path.pop(0)
 
 def _get_pyversion_from_args():
     """Extract, format, & pop the current py_version from args, if provided."""
-    py_version = 2
+    py_version = 3
     py_version_re = re.compile(r'--py_version=(\w+)\b')
 
     version_found = False
