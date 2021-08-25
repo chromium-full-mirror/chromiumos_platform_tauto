@@ -166,34 +166,22 @@ def create_chameleon_host(dut, chameleon_args):
         is_moblab = _CONFIG.get_config_value(
                 'SSP', 'is_moblab', type=bool, default=False)
 
-    if not is_moblab:
-        dut_is_hostname = not dnsname_mangler.is_ip_address(dut)
-        if dut_is_hostname:
-            chameleon_hostname = chameleon.make_chameleon_hostname(dut)
-            if utils.host_is_in_lab_zone(chameleon_hostname):
-                # Be more tolerant on chameleon in the lab because
-                # we don't want dead chameleon blocks non-chameleon tests.
-                if utils.ping(chameleon_hostname, deadline=3):
-                   logging.warning(
-                           'Chameleon %s is not accessible. Please file a bug'
-                           ' to test lab', chameleon_hostname)
-                   return None
-                return ChameleonHost(chameleon_host=chameleon_hostname)
-        if chameleon_args:
-            return ChameleonHost(**chameleon_args)
-        else:
-            return None
+    dut_is_hostname = not dnsname_mangler.is_ip_address(dut)
+    if dut_is_hostname:
+        chameleon_hostname = chameleon.make_chameleon_hostname(dut)
+        if utils.host_is_in_lab_zone(chameleon_hostname):
+            # Be more tolerant on chameleon in the lab because
+            # we don't want dead chameleon blocks non-chameleon tests.
+            if utils.ping(chameleon_hostname, deadline=3):
+                logging.warning(
+                        'Chameleon %s is not accessible. Please file a bug'
+                        ' to test lab', chameleon_hostname)
+                return None
+            return ChameleonHost(chameleon_host=chameleon_hostname)
+    if chameleon_args:
+        return ChameleonHost(**chameleon_args)
     else:
-        afe = frontend_wrappers.RetryingAFE(timeout_min=5, delay_sec=10)
-        hosts = afe.get_hosts(hostname=dut)
-        if hosts and CHAMELEON_HOST_ATTR in hosts[0].attributes:
-            return ChameleonHost(
-                chameleon_host=hosts[0].attributes[CHAMELEON_HOST_ATTR],
-                chameleon_port=hosts[0].attributes.get(
-                    CHAMELEON_PORT_ATTR, 9992)
-            )
-        else:
-            return None
+        return None
 
 
 def create_btpeer_host(dut, btpeer_args_list):

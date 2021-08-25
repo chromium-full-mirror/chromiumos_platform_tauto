@@ -26,7 +26,7 @@ from autotest_lib.client.cros import constants as client_constants
 from autotest_lib.client.cros import cros_ui
 from autotest_lib.server import utils as server_utils
 from autotest_lib.server import tauto_warnings
-from autotest_lib.server.cros import provision
+from autotest_lib.server.consts import consts
 from autotest_lib.server.cros.dynamic_suite import constants as ds_constants
 from autotest_lib.server.cros.dynamic_suite import tools
 from autotest_lib.server.cros.device_health_profile import device_health_profile
@@ -54,7 +54,7 @@ class FactoryImageCheckerException(error.AutoservError):
 class CrosHost(abstract_ssh.AbstractSSHHost):
     """Chromium OS specific subclass of Host."""
 
-    VERSION_PREFIX = provision.CROS_VERSION_PREFIX
+    VERSION_PREFIX = consts.CROS_VERSION_PREFIX
 
 
     # Timeout values (in seconds) associated with various Chrome OS
@@ -444,12 +444,12 @@ class CrosHost(abstract_ssh.AbstractSSHHost):
 
         In case the CrOS provisioning version is something other than the
         standard CrOS version e.g. CrOS TH version, this function will
-        find the prefix from provision.py.
+        find the prefix from consts.py.
 
         @param image: The image name to find its version prefix.
         @returns: A prefix string for the image type.
         """
-        return provision.get_version_label_prefix(image)
+        return consts.get_version_label_prefix(image)
 
     def stage_build_to_usb(self, build):
         """Stage the current ChromeOS image on the USB stick connected to the
@@ -579,9 +579,9 @@ class CrosHost(abstract_ssh.AbstractSSHHost):
                         both fwro_version and fwrw_version.
         """
         info = self.host_info_store.get()
-        info.clear_version_labels(provision.FW_RW_VERSION_PREFIX)
+        info.clear_version_labels(consts.FW_RW_VERSION_PREFIX)
         if not rw_only:
-            info.clear_version_labels(provision.FW_RO_VERSION_PREFIX)
+            info.clear_version_labels(consts.FW_RO_VERSION_PREFIX)
         self.host_info_store.commit(info)
 
 
@@ -594,9 +594,9 @@ class CrosHost(abstract_ssh.AbstractSSHHost):
 
         """
         info = self.host_info_store.get()
-        info.set_version_label(provision.FW_RW_VERSION_PREFIX, build)
+        info.set_version_label(consts.FW_RW_VERSION_PREFIX, build)
         if not rw_only:
-            info.set_version_label(provision.FW_RO_VERSION_PREFIX, build)
+            info.set_version_label(consts.FW_RO_VERSION_PREFIX, build)
         self.host_info_store.commit(info)
 
     @staticmethod

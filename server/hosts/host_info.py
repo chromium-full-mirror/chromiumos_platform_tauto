@@ -13,7 +13,7 @@ import json
 import logging
 
 import common
-from autotest_lib.server.cros import provision
+from autotest_lib.server.consts import consts
 import six
 
 
@@ -55,13 +55,13 @@ class HostInfo(object):
     _SV_SERVO_CROS_KEY = "servo-cros"
 
     _OS_VERSION_LABELS = (
-            provision.CROS_VERSION_PREFIX,
-            provision.CROS_ANDROID_VERSION_PREFIX,
+            consts.CROS_VERSION_PREFIX,
+            consts.CROS_ANDROID_VERSION_PREFIX,
     )
 
     _VERSION_LABELS = _OS_VERSION_LABELS + (
-            provision.FW_RO_VERSION_PREFIX,
-            provision.FW_RW_VERSION_PREFIX,
+            consts.FW_RO_VERSION_PREFIX,
+            consts.FW_RW_VERSION_PREFIX,
     )
 
     def __init__(self, labels=None, attributes=None, stable_versions=None):
