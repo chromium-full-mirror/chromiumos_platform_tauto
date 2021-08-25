@@ -1,4 +1,4 @@
-#!/usr/bin/python2
+#!/usr/bin/python3
 # Copyright 2015 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -35,12 +35,12 @@ from autotest_lib.client.common_lib import global_config
 from autotest_lib.server import site_utils
 
 try:
-  from apiclient.discovery import build as apiclient_build
-  from apiclient import errors as apiclient_errors
-  from oauth2client import file as oauth_client_fileio
+    from apiclient.discovery import build as apiclient_build
+    from apiclient import errors as apiclient_errors
+    from oauth2client import file as oauth_client_fileio
 except ImportError as e:
-  apiclient_build = None
-  logging.debug("API client for gmail disabled. %s", e)
+    apiclient_build = None
+    logging.debug("API client for gmail disabled. %s", e)
 
 # Note: These imports needs to come after the apiclient imports, because
 # of a sys.path war between chromite and autotest crbug.com/622988

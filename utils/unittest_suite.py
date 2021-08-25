@@ -1,9 +1,11 @@
-#!/usr/bin/python2 -u
+#!/usr/bin/python3 -u
 
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 import os, sys, unittest, optparse
+os.environ["PY_VERSION"] = "3"
+
 import common
 from autotest_lib.utils import parallel
 

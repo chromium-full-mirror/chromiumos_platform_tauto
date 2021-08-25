@@ -1,4 +1,4 @@
-#!/usr/bin/python2
+#!/usr/bin/python3
 
 """
 Send all Repair Failed hosts that the user running this script has access to
