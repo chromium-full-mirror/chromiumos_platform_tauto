@@ -51,9 +51,7 @@ from autotest_lib.server.autotest import OFFLOAD_ENVVAR
 from autotest_lib.server import utils as server_utils
 from autotest_lib.server import hosts
 from autotest_lib.server.hosts import abstract_ssh
-from autotest_lib.server.hosts import afe_store
 from autotest_lib.server.hosts import file_store
-from autotest_lib.server.hosts import shadowing_store
 from autotest_lib.server.hosts import factory as host_factory
 from autotest_lib.server.hosts import host_info
 from autotest_lib.server.hosts import ssh_multiplex
@@ -1561,32 +1559,6 @@ def _create_file_backed_host_info_store(store_dir, hostname):
                 % backing_file_path
         )
     return file_store.FileStore(backing_file_path)
-
-
-def _create_afe_backed_host_info_store(store_dir, hostname):
-    """Create a CachingHostInfoStore backed by the AFE.
-
-    @param store_dir: A directory to contain store backing files.
-    @param hostname: Name of the host for which we want the store.
-
-    @returns: An object of type CachingHostInfoStore.
-    """
-    primary_store = afe_store.AfeStore(hostname)
-    try:
-        primary_store.get(force_refresh=True)
-    except host_info.StoreError:
-        raise error.AutoservError(
-                'Could not obtain HostInfo for hostname %s' % hostname)
-    # Since the store wasn't initialized external to autoserv, we must
-    # ensure that the store we create is unique within store_dir.
-    backing_file_path = os.path.join(
-            _make_unique_subdir(store_dir),
-            '%s.store' % hostname,
-    )
-    logging.info('Shadowing AFE store with a FileStore at %s',
-                 backing_file_path)
-    shadow_store = file_store.FileStore(backing_file_path)
-    return shadowing_store.ShadowingStore(primary_store, shadow_store)
 
 
 def _make_unique_subdir(workdir):

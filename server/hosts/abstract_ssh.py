@@ -22,7 +22,6 @@ from autotest_lib.server.hosts import host_info
 from autotest_lib.server.hosts import remote
 from autotest_lib.server.hosts import rpc_server_tracker
 from autotest_lib.server.hosts import ssh_multiplex
-from autotest_lib.server.hosts.tls_client import exec_dut_command
 
 import six
 from six.moves import filter
@@ -36,11 +35,7 @@ enable_main_ssh = get_value('AUTOSERV',
                             type=bool,
                             default=False)
 
-ENABLE_EXEC_DUT_COMMAND = get_value('AUTOSERV',
-                                    'enable_tls',
-                                    type=bool,
-                                    default=False)
-
+ENABLE_EXEC_DUT_COMMAND = False
 # Number of seconds to use the cached up status.
 _DEFAULT_UP_STATUS_EXPIRATION_SECONDS = 300
 _DEFAULT_SSH_PORT = 22
@@ -1082,9 +1077,7 @@ class AbstractSSHHost(remote.RemoteHost):
         # If the TLS connection is alive, create a new client.
         if self.tls_connection is None:
             return None
-        return exec_dut_command.TLSExecDutCommandClient(
-            tlsconnection=self.tls_connection,
-            hostname=self.hostname)
+        return None
 
     def clear_known_hosts(self):
         """Clears out the temporary ssh known_hosts file.

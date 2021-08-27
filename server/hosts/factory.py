@@ -16,7 +16,7 @@ from autotest_lib.client.common_lib import error
 from autotest_lib.client.common_lib import global_config
 from autotest_lib.server import utils as server_utils
 from autotest_lib.server.cros.dynamic_suite import constants
-from autotest_lib.server.hosts import cros_host
+from autotest_lib.server.hosts import generic_host
 from autotest_lib.server.hosts import host_info
 from autotest_lib.server.hosts import ssh_host
 from autotest_lib.server.hosts import file_store
@@ -37,11 +37,11 @@ _started_hostnames = set()
 # A list of all the possible host types, ordered according to frequency of
 # host types in the lab, so the more common hosts don't incur a repeated ssh
 # overhead in checking for less common host types.
-host_types = [cros_host.CrosHost]
-OS_HOST_DICT = {'cros': cros_host.CrosHost}
+host_types = [generic_host.GenericHost]
+OS_HOST_DICT = {'generic': generic_host.GenericHost}
 
 LOOKUP_DICT = {
-        'CrosHost': cros_host.CrosHost,
+        'generic': generic_host.GenericHost,
 }
 
 # Timeout for early connectivity check to the host, in seconds.
@@ -129,7 +129,7 @@ def _detect_host(connectivity_class, hostname, **args):
 
     logging.warning('Unable to apply conventional host detection methods, '
                     'defaulting to chromeos host.')
-    return cros_host.CrosHost
+    return generic_host.GenericHost
 
 
 def _preset_host(hostname):
@@ -251,11 +251,12 @@ def create_host(machine, host_class=None, connectivity_class=None, **args):
         except (error.AutoservRunError, error.AutoservSSHTimeout):
             logging.exception('Failed to verify connectivity to host.'
                               ' Skipping host auto detection logic.')
-            host_class = cros_host.CrosHost
-            logging.debug('Defaulting to CrosHost.')
+            host_class = generic_host.GenericHost
+            logging.debug('Defaulting to GenericHost.')
 
     # create a custom host class for this machine and return an instance of it
     classes = (host_class, connectivity_class)
+    logging.info("!!!!!!!! {}".format(classes))
     custom_host_class = type("%s_host" % hostname, classes, {})
     host_instance = custom_host_class(hostname, **args)
 

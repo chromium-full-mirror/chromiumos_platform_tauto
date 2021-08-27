@@ -4,10 +4,10 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+
 import os, logging, time
-import six
-from six.moves import urllib
 import re
+from six.moves import urllib
 
 import common
 
@@ -15,7 +15,6 @@ from autotest_lib.client.common_lib import error
 from autotest_lib.client.common_lib.global_config import global_config
 from autotest_lib.server import utils
 from autotest_lib.server.hosts import base_classes
-from autotest_lib.server.hosts.tls_client.connection import TLSConnection
 
 
 class RemoteHost(base_classes.Host):
@@ -54,7 +53,7 @@ class RemoteHost(base_classes.Host):
 
         self.tls_connection = None
         try:
-            self.tls_connection = TLSConnection()
+            self.tls_connection = None
         except Exception as e:
             logging.warning("Could not establish TLS connection %s", e)
 
