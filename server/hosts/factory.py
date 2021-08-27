@@ -256,7 +256,6 @@ def create_host(machine, host_class=None, connectivity_class=None, **args):
 
     # create a custom host class for this machine and return an instance of it
     classes = (host_class, connectivity_class)
-    logging.info("!!!!!!!! {}".format(classes))
     custom_host_class = type("%s_host" % hostname, classes, {})
     host_instance = custom_host_class(hostname, **args)
 
