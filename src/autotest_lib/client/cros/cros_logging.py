@@ -11,8 +11,6 @@ import abc, logging, os, re, time
 from six.moves import range
 import subprocess
 
-import common
-
 from autotest_lib.client.bin import utils
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.cros.constants import CLEANUP_LOGS_PAUSED_FILE

@@ -8,7 +8,6 @@ from __future__ import print_function
 import time, unittest
 import six
 
-import common
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.common_lib.test_utils import mock
 from autotest_lib.server import subcommand

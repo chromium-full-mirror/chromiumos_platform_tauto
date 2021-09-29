@@ -8,7 +8,6 @@ import shutil
 import unittest
 import tempfile
 
-import common
 from autotest_lib.utils.side_effects import config_loader
 from autotest_lib.utils.side_effects.proto import config_pb2
 

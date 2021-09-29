@@ -5,8 +5,6 @@
 
 import unittest
 
-import common
-
 from autotest_lib.server import utils
 from autotest_lib.server.hosts import host_info
 from autotest_lib.server.hosts import base_label

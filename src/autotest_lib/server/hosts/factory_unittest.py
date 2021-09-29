@@ -5,7 +5,6 @@
 
 import unittest
 
-import common
 from autotest_lib.client.common_lib import error
 from autotest_lib.server.hosts import base_label_unittest, factory
 from autotest_lib.server.hosts import host_info

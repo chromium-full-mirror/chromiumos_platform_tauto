@@ -9,7 +9,7 @@
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
-import common
+
 from autotest_lib.client.common_lib import control_data
 from six.moves import map
 

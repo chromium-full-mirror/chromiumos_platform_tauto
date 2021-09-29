@@ -7,8 +7,9 @@ Utility to upload or remove the packages from the packages repository.
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
+
 import logging, optparse, os, shutil, sys, tempfile
-import common
+
 from autotest_lib.client.common_lib import utils as client_utils
 from autotest_lib.client.common_lib import global_config, error
 from autotest_lib.client.common_lib import packages

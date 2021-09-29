@@ -8,7 +8,6 @@
 
 import unittest
 
-import common
 from autotest_lib.client.bin.result_tools import utils_lib
 
 

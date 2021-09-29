@@ -12,7 +12,6 @@ import copy
 import json
 import logging
 
-import common
 from autotest_lib.server.consts import consts
 import six
 

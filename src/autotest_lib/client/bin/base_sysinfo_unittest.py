@@ -3,7 +3,6 @@
 import mock
 import unittest
 
-import common
 from autotest_lib.client.common_lib import autotemp
 from autotest_lib.client.bin import base_sysinfo
 

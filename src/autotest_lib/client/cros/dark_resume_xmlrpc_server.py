@@ -7,7 +7,6 @@
 import logging
 import logging.handlers
 
-import common
 from autotest_lib.client.cros import constants
 from autotest_lib.client.cros import dark_resume_listener
 from autotest_lib.client.cros import xmlrpc_server

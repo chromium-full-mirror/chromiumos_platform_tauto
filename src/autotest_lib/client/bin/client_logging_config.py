@@ -1,6 +1,6 @@
-import common
 import logging, os
 from autotest_lib.client.common_lib import logging_config, global_config
+
 
 class ClientLoggingConfig(logging_config.LoggingConfig):
     def add_debug_file_handlers(self, log_dir, log_name=None):

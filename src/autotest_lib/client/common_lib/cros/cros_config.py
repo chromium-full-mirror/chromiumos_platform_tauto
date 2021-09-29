@@ -32,7 +32,6 @@ so that you don't have to wait for your new fallbacks to get promoted.
 
 import logging
 
-import common
 from autotest_lib.client.common_lib import error
 
 FALLBACKS = {

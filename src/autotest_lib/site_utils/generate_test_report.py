@@ -26,7 +26,6 @@ import six
 from six.moves import range
 import sys
 
-import common
 from autotest_lib.utils import terminal
 
 

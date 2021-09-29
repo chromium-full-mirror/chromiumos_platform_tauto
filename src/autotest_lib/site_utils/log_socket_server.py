@@ -24,7 +24,6 @@ import six.moves.socketserver
 import struct
 import time
 
-import common
 from autotest_lib.client.common_lib import utils
 
 class LogRecordStreamHandler(six.moves.socketserver.StreamRequestHandler):

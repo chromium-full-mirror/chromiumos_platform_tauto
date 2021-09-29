@@ -8,7 +8,6 @@ import logging
 import os
 import tempfile
 
-import common
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.common_lib.feedback import client
 from autotest_lib.server.brillo import audio_utils

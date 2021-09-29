@@ -5,7 +5,6 @@ import os
 import six
 import unittest
 
-import common
 from autotest_lib.client.common_lib import autotemp
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.bin import local_host

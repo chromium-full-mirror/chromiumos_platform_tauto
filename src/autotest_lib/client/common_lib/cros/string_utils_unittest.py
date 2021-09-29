@@ -12,7 +12,6 @@ from __future__ import print_function
 import mock
 import unittest
 
-import common
 from autotest_lib.client.common_lib.cros import string_utils
 
 

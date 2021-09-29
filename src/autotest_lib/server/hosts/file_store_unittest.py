@@ -7,11 +7,11 @@ import os
 import stat
 import unittest
 
-import common
 from autotest_lib.client.common_lib import autotemp
 from autotest_lib.server.hosts import file_store
 from autotest_lib.server.hosts import host_info
 from autotest_lib.utils.frozen_chromite.lib import locking
+
 
 class FileStoreTestCase(unittest.TestCase):
     """Test file_store.FileStore functionality."""

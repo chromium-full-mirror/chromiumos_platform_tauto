@@ -4,8 +4,6 @@
 
 import math
 
-import common
-
 
 def convert_timeout_to_retry(backoff, timeout_min, delay_sec):
     """Compute the number of retry attempts for use with chromite.retry_util.

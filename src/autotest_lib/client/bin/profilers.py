@@ -1,5 +1,4 @@
 import os, sys
-import common
 
 from autotest_lib.client.common_lib import utils, error, profiler_manager
 

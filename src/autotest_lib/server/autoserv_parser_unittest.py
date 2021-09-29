@@ -5,7 +5,6 @@
 import sys
 import unittest
 
-import common
 from autotest_lib.server import autoserv_parser
 
 

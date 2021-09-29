@@ -1,7 +1,5 @@
 import logging
 
-import common
-
 from autotest_lib.client.common_lib import error
 
 

@@ -5,7 +5,7 @@
 # pylint: disable-msg=C0111
 
 import unittest
-import common
+
 from autotest_lib.site_utils import test_that
 
 

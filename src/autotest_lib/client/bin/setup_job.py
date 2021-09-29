@@ -4,7 +4,6 @@
 # Eric Li <ericli@google.com>
 
 import logging, os, pickle, re, sys
-import common
 
 from autotest_lib.client.bin import job as client_job
 from autotest_lib.client.common_lib import base_job

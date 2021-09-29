@@ -14,8 +14,6 @@ from mock import patch, MagicMock
 import six
 import unittest
 
-import common
-
 from autotest_lib.server.cros.dynamic_suite.fakes import FakeHost
 from autotest_lib.server.cros.dynamic_suite.host_spec import HostSpec
 from autotest_lib.server.cros.dynamic_suite import host_spec

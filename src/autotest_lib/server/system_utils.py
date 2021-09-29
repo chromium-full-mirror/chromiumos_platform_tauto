@@ -10,7 +10,6 @@ to avoid circular imports.
 
 import copy
 
-import common
 from autotest_lib.client.common_lib import global_config
 from autotest_lib.client.common_lib import utils
 from autotest_lib.site_utils import server_manager_utils

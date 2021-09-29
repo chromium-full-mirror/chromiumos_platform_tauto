@@ -34,7 +34,6 @@ the logs explaining a failure or repair event.
 
 """
 
-import common
 import os
 from autotest_lib.frontend import setup_django_environment
 from django.db import models as django_models

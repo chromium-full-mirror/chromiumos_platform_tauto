@@ -4,10 +4,7 @@
 
 """This class defines the Base Label classes."""
 
-
 import logging
-
-import common
 
 from autotest_lib.server.hosts import host_info
 from autotest_lib.server.hosts import shadowing_store

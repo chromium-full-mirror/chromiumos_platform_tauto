@@ -14,7 +14,6 @@ import threading
 import time
 import unittest
 
-import common
 from autotest_lib.client.common_lib import decorators
 
 

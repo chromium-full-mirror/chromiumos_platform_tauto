@@ -12,8 +12,6 @@ import random
 import re
 import six
 
-import common
-
 from autotest_lib.client.common_lib import global_config
 
 _CONFIG = global_config.global_config

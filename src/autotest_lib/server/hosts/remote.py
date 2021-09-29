@@ -9,7 +9,6 @@ import os, logging, time
 import re
 from six.moves import urllib
 
-import common
 
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.common_lib.global_config import global_config

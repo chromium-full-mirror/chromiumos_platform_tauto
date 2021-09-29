@@ -8,7 +8,6 @@ from __future__ import absolute_import
 import mock
 import unittest
 
-import common
 from autotest_lib.server.hosts import host_info
 from autotest_lib.server.hosts import shadowing_store
 

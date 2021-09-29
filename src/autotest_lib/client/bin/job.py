@@ -24,7 +24,6 @@ import weakref
 
 import six
 
-import common
 from autotest_lib.client.bin import client_logging_config
 from autotest_lib.client.bin import harness
 from autotest_lib.client.bin import local_host

@@ -17,7 +17,6 @@ import unittest
 import mock
 from mock import patch, call
 
-import common
 from autotest_lib.client.bin import utils as bin_utils
 from autotest_lib.client.common_lib import android_utils
 from autotest_lib.client.common_lib import error

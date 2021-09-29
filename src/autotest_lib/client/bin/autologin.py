@@ -5,9 +5,6 @@
 # found in the LICENSE file.
 
 '''Make Chrome automatically log in.'''
-
-# This sets up import paths for autotest.
-import common
 import argparse
 import getpass
 import sys

@@ -15,9 +15,9 @@ from __future__ import print_function
 __author__ = 'cranger@google.com (Colby Ranger)'
 
 import platform
-import common
-from autotest_lib.client.common_lib import barrier
 import six
+
+from autotest_lib.client.common_lib import barrier
 
 # Client control file snippet used to synchronize profiler start & stop.
 _RUNTEST_PATTERN = ("job.run_test('profiler_sync', timeout_sync=%r,\n"

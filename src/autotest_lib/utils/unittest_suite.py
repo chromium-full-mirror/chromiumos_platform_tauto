@@ -6,7 +6,6 @@ from __future__ import print_function
 import os, sys, unittest, optparse
 os.environ["PY_VERSION"] = "3"
 
-import common
 from autotest_lib.utils import parallel
 
 parser = optparse.OptionParser()

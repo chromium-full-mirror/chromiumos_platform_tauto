@@ -22,8 +22,6 @@ import mock as pymock
 import six
 from six.moves import range, urllib
 
-import common
-
 from autotest_lib.client.common_lib import autotemp, utils
 from autotest_lib.client.common_lib.test_utils import mock
 

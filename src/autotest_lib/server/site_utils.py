@@ -15,8 +15,6 @@ import os
 import re
 import traceback
 
-
-import common
 from autotest_lib.client.bin.result_tools import utils as result_utils
 from autotest_lib.client.bin.result_tools import utils_lib as result_utils_lib
 from autotest_lib.client.bin.result_tools import view as result_view

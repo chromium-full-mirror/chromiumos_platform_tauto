@@ -7,8 +7,6 @@
 import logging
 import re
 
-import common
-
 from autotest_lib.client.bin import utils
 from autotest_lib.client.common_lib import error
 

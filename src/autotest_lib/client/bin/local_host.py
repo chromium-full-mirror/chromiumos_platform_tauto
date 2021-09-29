@@ -15,7 +15,6 @@ import platform
 import shutil
 import sys
 
-import common
 from autotest_lib.client.common_lib import hosts, error
 from autotest_lib.client.bin import utils
 import six

@@ -11,8 +11,6 @@ import signal
 
 import mock
 
-import common
-
 from autotest_lib.client.common_lib.cros import retry
 from autotest_lib.client.common_lib import error
 

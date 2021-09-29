@@ -8,7 +8,6 @@
 import os
 import re
 
-import common
 from autotest_lib.client.cros import constants
 
 

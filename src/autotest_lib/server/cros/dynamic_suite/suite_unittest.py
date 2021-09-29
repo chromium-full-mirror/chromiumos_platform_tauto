@@ -19,8 +19,6 @@ import shutil
 import tempfile
 import unittest
 
-import common
-
 from autotest_lib.client.common_lib import control_data
 from autotest_lib.client.common_lib.cros import dev_server
 from autotest_lib.server.cros import provision

@@ -6,8 +6,6 @@
 
 import unittest
 
-import common
-
 from autotest_lib.client.common_lib.test_utils import comparators
 
 

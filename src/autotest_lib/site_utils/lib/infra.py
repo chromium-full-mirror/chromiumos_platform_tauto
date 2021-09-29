@@ -7,7 +7,6 @@ import getpass
 import subprocess
 import os
 
-import common
 from autotest_lib.server.hosts import ssh_host
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.common_lib import global_config

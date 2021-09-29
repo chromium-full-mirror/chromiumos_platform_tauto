@@ -16,8 +16,6 @@ import json
 import re
 import sys
 
-import common
-
 
 # Default keys to skip displaying.
 DEFAULT_SKIP = [

@@ -6,7 +6,6 @@
 
 import unittest
 
-import common
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.common_lib import utils
 from autotest_lib.client.common_lib.cros import cros_config

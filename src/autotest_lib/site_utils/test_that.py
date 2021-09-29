@@ -19,7 +19,6 @@ import logging
 # test_that user.
 logging.basicConfig(level=logging.INFO)
 
-import common
 from autotest_lib.client.common_lib import logging_manager
 from autotest_lib.server import server_logging_config
 from autotest_lib.site_utils import test_runner_utils

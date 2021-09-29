@@ -7,7 +7,6 @@
 import copy
 import unittest
 
-import common
 from autotest_lib.utils import labellib
 
 

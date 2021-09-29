@@ -14,7 +14,6 @@ import stat
 import tempfile
 import unittest
 
-import common
 from autotest_lib.client.common_lib import base_job, error
 
 

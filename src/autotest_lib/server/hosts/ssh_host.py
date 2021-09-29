@@ -20,7 +20,6 @@ import logging
 import re
 import time
 
-import common
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.common_lib import pxssh
 from autotest_lib.server import utils

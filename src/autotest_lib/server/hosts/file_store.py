@@ -5,7 +5,6 @@
 import contextlib
 import errno
 
-import common
 from autotest_lib.server.hosts import host_info
 from autotest_lib.utils.frozen_chromite.lib import locking
 from autotest_lib.utils.frozen_chromite.lib import retry_util

@@ -15,7 +15,6 @@ import functools
 import logging
 import unittest
 
-import common
 from autotest_lib.client.common_lib import hosts
 from autotest_lib.client.common_lib.hosts import repair
 from autotest_lib.server import constants

@@ -5,7 +5,6 @@ __author__ = "raphtee@google.com (Travis Miller)"
 import unittest, os, tempfile, logging
 from io import StringIO
 
-import common
 from autotest_lib.server import autotest, utils, hosts, server_job, profilers
 from autotest_lib.client.bin import sysinfo
 from autotest_lib.client.common_lib import packages

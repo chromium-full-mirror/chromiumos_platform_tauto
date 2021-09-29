@@ -1,7 +1,6 @@
 # Lint as: python2, python3
 import os, shutil, tempfile, logging
 
-import common
 from autotest_lib.client.common_lib import utils, error, profiler_manager
 from autotest_lib.server import profiler, autotest, standalone_profiler
 

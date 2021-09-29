@@ -8,8 +8,6 @@ import os
 import time
 import unittest
 
-import common
-
 from autotest_lib.client.common_lib import time_utils
 
 

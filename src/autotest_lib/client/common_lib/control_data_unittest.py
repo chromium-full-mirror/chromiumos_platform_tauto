@@ -11,8 +11,6 @@ import six
 from six.moves import range
 import unittest
 
-import common
-
 from autotest_lib.client.common_lib import control_data, autotemp
 
 

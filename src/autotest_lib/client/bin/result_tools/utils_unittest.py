@@ -17,7 +17,6 @@ import tempfile
 import time
 import unittest
 
-import common
 from autotest_lib.client.bin.result_tools import result_info
 from autotest_lib.client.bin.result_tools import throttler_lib
 from autotest_lib.client.bin.result_tools import utils as result_utils

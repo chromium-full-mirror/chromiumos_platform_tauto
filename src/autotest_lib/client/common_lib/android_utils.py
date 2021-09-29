@@ -6,16 +6,13 @@
 This module provides utilities needed to provision and run test on Android
 devices.
 """
-
-
 import logging
 import re
 
-import common
 from autotest_lib.client.common_lib import global_config
 
-
 CONFIG = global_config.global_config
+
 
 def get_config_value_regex(section, regex):
     """Get config values from global config based on regex of the key.

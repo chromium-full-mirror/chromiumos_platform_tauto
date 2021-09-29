@@ -7,7 +7,6 @@ import six
 import sys
 import unittest
 
-import common
 from autotest_lib.client.bin import job, setup_job
 from autotest_lib.client.bin import utils
 from autotest_lib.client.common_lib import base_job

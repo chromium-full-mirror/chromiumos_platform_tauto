@@ -2,7 +2,9 @@
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
 
-import common, logging, os, time
+import logging
+import os
+import time
 
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.common_lib import utils

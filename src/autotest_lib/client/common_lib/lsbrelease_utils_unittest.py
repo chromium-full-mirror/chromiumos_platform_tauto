@@ -7,7 +7,6 @@
 
 import unittest
 
-import common
 from autotest_lib.client.common_lib import lsbrelease_utils
 
 

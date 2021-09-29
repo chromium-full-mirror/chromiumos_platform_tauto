@@ -16,8 +16,6 @@ import re
 import six
 from six.moves import zip
 
-import common
-
 from autotest_lib.client.common_lib import control_data
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.common_lib import global_config

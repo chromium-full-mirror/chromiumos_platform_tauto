@@ -11,7 +11,7 @@ __author__ = 'gps@google.com (Gregory P. Smith)'
 import os, sys, unittest
 from six import StringIO
 from six.moves import reload_module as reload
-import common
+
 from autotest_lib.client.common_lib.test_utils import mock
 from autotest_lib.client.bin import partition
 from six.moves import range

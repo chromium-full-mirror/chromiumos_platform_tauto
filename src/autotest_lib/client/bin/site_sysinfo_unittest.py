@@ -17,7 +17,6 @@ import shutil
 import tempfile
 import unittest
 
-import common
 from autotest_lib.client.bin import site_sysinfo
 from autotest_lib.client.common_lib import autotemp
 from six.moves import range

@@ -11,12 +11,11 @@ import abc
 import logging
 import os
 import re
-
-import common
-from autotest_lib.client.common_lib import error, utils
-from autotest_lib.client.common_lib.cros import dev_server
 import six
 from six.moves import filter
+
+from autotest_lib.client.common_lib import error, utils
+from autotest_lib.client.common_lib.cros import dev_server
 
 
 # Relevant CrosDynamicSuiteExceptions are defined in client/common_lib/error.py.

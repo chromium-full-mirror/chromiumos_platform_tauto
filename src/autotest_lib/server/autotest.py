@@ -15,7 +15,6 @@ import tempfile
 import time
 import traceback
 
-import common
 from autotest_lib.client.bin.result_tools import runner as result_tools_runner
 from autotest_lib.client.common_lib import autotemp
 from autotest_lib.client.common_lib import base_job

@@ -9,8 +9,6 @@
 from mock import patch
 import unittest
 
-import common
-
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.common_lib.cros import dev_server
 from autotest_lib.server.cros.dynamic_suite import control_file_getter

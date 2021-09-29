@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 
 import unittest
-import common
+
 from autotest_lib.client.common_lib import profiler_manager
 
 

@@ -8,7 +8,6 @@ import inspect
 import json
 import unittest
 
-import common
 from autotest_lib.server.hosts import host_info
 
 

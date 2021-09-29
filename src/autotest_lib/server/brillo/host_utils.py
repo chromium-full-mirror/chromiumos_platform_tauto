@@ -7,7 +7,6 @@
 import contextlib
 import logging
 
-import common
 from autotest_lib.client.bin import utils
 
 

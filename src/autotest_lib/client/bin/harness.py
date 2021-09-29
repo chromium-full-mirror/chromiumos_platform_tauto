@@ -9,8 +9,6 @@ __author__ = """Copyright Andy Whitcroft 2006"""
 
 import logging
 
-import common
-
 
 class harness(object):
     """The NULL server harness

@@ -4,8 +4,6 @@
 
 import re
 
-import common
-
 from autotest_lib.utils.labellib import Key
 
 ### Constants for label prefixes

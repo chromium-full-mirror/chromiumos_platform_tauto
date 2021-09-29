@@ -6,7 +6,6 @@
 
 from __future__ import print_function
 
-import common
 import datetime
 import json
 import logging

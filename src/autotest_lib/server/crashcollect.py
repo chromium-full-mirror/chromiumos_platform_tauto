@@ -8,7 +8,6 @@ import random
 import shutil
 import time
 
-import common
 from autotest_lib.client.bin.result_tools import runner as result_tools_runner
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.common_lib import global_config
@@ -21,6 +20,7 @@ from autotest_lib.server import utils
 # 40 a quarter of the time, so that in the long run we are collecting files
 # with this max size.
 _MAX_FILESIZE = 64 * (2 ** 20)  # 64 MiB
+
 
 class _RemoteTempDir(object):
 

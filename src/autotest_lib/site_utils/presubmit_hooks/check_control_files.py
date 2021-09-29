@@ -18,7 +18,6 @@ import os
 import re
 import subprocess
 
-import common
 from autotest_lib.client.common_lib import control_data
 
 

@@ -5,8 +5,6 @@
 import threading
 import unittest
 
-import common
-
 from autotest_lib.server.cros import stress
 
 

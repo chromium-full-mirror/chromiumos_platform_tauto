@@ -29,7 +29,6 @@ import os
 import random
 from email.mime.text import MIMEText
 
-import common
 from autotest_lib.client.bin import utils
 from autotest_lib.client.common_lib import global_config
 from autotest_lib.server import site_utils

@@ -19,7 +19,6 @@ if len(sys.argv) == 2 and sys.argv[1] == '--prespawn_autotest':
 
     # Do common imports (to save startup time).
     # pylint: disable=W0611
-    import common
     import autotest_lib.client.bin.job
     from autotest_lib.client.common_lib import seven
 

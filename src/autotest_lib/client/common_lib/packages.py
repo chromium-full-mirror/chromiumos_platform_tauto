@@ -18,7 +18,6 @@ import re
 import shutil
 import six
 
-import common
 from autotest_lib.client.bin import os_dep
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.common_lib import global_config

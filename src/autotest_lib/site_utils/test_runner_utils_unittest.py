@@ -14,8 +14,6 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-import common
-
 from autotest_lib.server.hosts import host_info
 from autotest_lib.site_utils import test_runner_utils
 

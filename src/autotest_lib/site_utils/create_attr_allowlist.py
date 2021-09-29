@@ -13,7 +13,6 @@ from __future__ import print_function
 
 import argparse
 
-import common
 from autotest_lib.client.common_lib.cros import dev_server
 from autotest_lib.server.cros.dynamic_suite.suite import Suite
 

@@ -79,7 +79,6 @@ import os
 import re
 import sys
 
-import common
 from autotest_lib.client.common_lib import autotemp, revision_control
 
 # Do a basic check to see if pylint is even installed.
@@ -179,7 +178,7 @@ class CustomVariablesChecker(variables.VariablesChecker):
 
     def visit_module(self, node):
         """
-        Unflag 'import common'.
+        Unflag ''.
 
         _to_consume eg: [({to reference}, {referenced}, 'scope type')]
         Enteries are appended to this list as we drill deeper in scope.

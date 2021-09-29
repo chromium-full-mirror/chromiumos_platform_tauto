@@ -14,7 +14,6 @@ from __future__ import print_function
 
 import optparse, os, sys
 
-import common
 from autotest_lib.server import frontend
 
 

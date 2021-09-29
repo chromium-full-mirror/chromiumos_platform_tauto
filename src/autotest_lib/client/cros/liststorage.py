@@ -25,7 +25,6 @@ import six
 # this script can be run at command line on DUT (ie /usr/local/autotest
 # contains only the client/ subtree), on a normal autotest
 # installation/repository or as a python module used on a client-side test.
-import common
 
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.common_lib import utils

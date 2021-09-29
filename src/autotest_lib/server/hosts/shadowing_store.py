@@ -7,7 +7,6 @@ from __future__ import print_function
 
 import logging
 
-import common
 from autotest_lib.server.hosts import host_info
 
 

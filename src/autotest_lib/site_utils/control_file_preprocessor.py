@@ -25,7 +25,6 @@ from __future__ import print_function
 
 import collections, json, os, sys
 
-import common
 from autotest_lib.server.cros.dynamic_suite import suite
 from autotest_lib.site_utils import suite_preprocessor
 

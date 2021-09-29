@@ -12,7 +12,6 @@ import unittest
 from six.moves import range
 import six
 
-import common
 from autotest_lib.client.bin import job, sysinfo, harness
 from autotest_lib.client.bin import utils
 from autotest_lib.client.common_lib import error

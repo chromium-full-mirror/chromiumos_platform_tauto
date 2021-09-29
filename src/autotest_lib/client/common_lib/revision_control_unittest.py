@@ -4,9 +4,6 @@ import shutil
 import tempfile
 import unittest
 
-# This makes autotest_lib imports available.
-import common
-
 from autotest_lib.client.common_lib import revision_control
 from autotest_lib.client.common_lib import utils
 

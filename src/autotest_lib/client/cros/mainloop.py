@@ -5,8 +5,6 @@
 
 import gobject, logging, sys, traceback
 
-import common
-
 from autotest_lib.client.common_lib import error
 
 # TODO(rochberg): Take another shot at fixing glib to allow this

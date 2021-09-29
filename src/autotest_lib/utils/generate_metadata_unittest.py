@@ -12,8 +12,6 @@ import shutil
 
 os.environ["PY_VERSION"] = '3'
 
-import common
-
 # These tests are strictly not supported in python2.
 if six.PY2:
     exit(0)

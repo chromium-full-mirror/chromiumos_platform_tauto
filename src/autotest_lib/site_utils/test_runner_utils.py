@@ -24,7 +24,6 @@ import logging
 # test_that user.
 logging.basicConfig(level=logging.INFO)
 
-import common
 from autotest_lib.client.common_lib.cros import retry
 from autotest_lib.client.common_lib import logging_manager
 from autotest_lib.server.cros.dynamic_suite import constants

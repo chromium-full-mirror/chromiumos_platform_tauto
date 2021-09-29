@@ -57,8 +57,6 @@ except ImportError as e:
     else:
         raise ImportError("Broken hashlib imports %s", e)
 
-import common
-
 from autotest_lib.client.common_lib import env
 from autotest_lib.client.common_lib import error
 from autotest_lib.client.common_lib import global_config

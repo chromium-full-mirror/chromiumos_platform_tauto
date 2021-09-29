@@ -5,8 +5,6 @@
 
 import unittest
 
-import common
-
 from autotest_lib.server.hosts import ssh_multiplex
 
 

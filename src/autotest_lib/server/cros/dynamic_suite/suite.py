@@ -14,8 +14,6 @@ import os
 import re
 import six
 
-import common
-
 from autotest_lib.server.cros.dynamic_suite import boolparse_lib
 from autotest_lib.server.cros.dynamic_suite import control_file_getter
 from autotest_lib.server.cros.dynamic_suite import suite_common

@@ -12,7 +12,6 @@ import sys
 # If running in Autotest dir, keep this.
 os.environ["PY_VERSION"] = '3'
 
-import common
 
 # NOTE: this MUST be run in Python3, if we get configured back to PY2, exit.
 if six.PY2:
