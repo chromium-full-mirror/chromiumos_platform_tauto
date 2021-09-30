@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 # Copyright (c) 2013 The Chromium OS Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file.
@@ -8,9 +8,8 @@ from __future__ import division
 from __future__ import print_function
 
 import argparse
+import pathlib
 import os
-import signal
-import subprocess
 import sys
 
 import logging
@@ -147,47 +146,6 @@ def parse_local_arguments(argv):
     return parser, remaining_argv
 
 
-def perform_bootstrap_into_autotest_root(arguments, autotest_path, argv):
-    """
-    Perfoms a bootstrap to run test_that from the |autotest_path|.
-
-    This function is to be called from test_that's main() script, when
-    test_that is executed from the source tree location. It then executes
-    and waits on the version of test_that.py in |autotest_path|.
-
-    @param arguments: A parsed arguments object, as returned from
-                      test_that.parse_arguments(...).
-    @param autotest_path: Full absolute path to the autotest root directory.
-    @param argv: The arguments list, as passed to main(...)
-
-    @returns: The return code of the test_that script that was executed in
-              |autotest_path|.
-    """
-    logging_manager.configure_logging(
-            server_logging_config.ServerLoggingConfig(),
-            use_console=True,
-            verbose=arguments.debug)
-    logging.info('Re-running test_that script in %s copy of autotest.',
-                 autotest_path)
-    script_command = os.path.join(autotest_path, 'site_utils',
-                                  'test_that.py')
-    if not os.path.exists(script_command):
-        raise test_runner_utils.TestThatRunError(
-            'Unable to bootstrap to autotest root, %s not found.' %
-            script_command)
-    proc = None
-    def resend_sig(signum, stack_frame):
-        #pylint: disable-msg=C0111
-        if proc:
-            proc.send_signal(signum)
-    signal.signal(signal.SIGINT, resend_sig)
-    signal.signal(signal.SIGTERM, resend_sig)
-
-    proc = subprocess.Popen([script_command] + argv)
-
-    return proc.wait()
-
-
 def _main_for_all_run(argv, arguments):
     """
     Effective entry point test runs.
@@ -202,58 +160,38 @@ def _main_for_all_run(argv, arguments):
     arguments.results_dir = results_directory
 
     # TODO, maybe need to force a board/model specification.
+    autotest_path = pathlib.Path.cwd().parent
 
-    if arguments.autotest_dir:
-        autotest_path = arguments.autotest_dir
-    else:
-        # TODO, make this default to wherever this file is +1
-        # Might need eventually come back to sysroot for deps. TBD.
-        raise Exception("need to provide autotest_dir")
+    return test_runner_utils.perform_run_from_autotest_root(
+            autotest_path,
+            argv,
+            arguments.tests,
+            arguments.remote,
+            build=arguments.build,
+            board=arguments.board,
+            model=arguments.model,
+            args=arguments.args,
+            ignore_deps=not arguments.enforce_deps,
+            results_directory=results_directory,
+            ssh_verbosity=arguments.ssh_verbosity,
+            ssh_options=arguments.ssh_options,
+            iterations=arguments.iterations,
+            fast_mode=arguments.fast_mode,
+            debug=arguments.debug,
+            allow_chrome_crashes=arguments.allow_chrome_crashes,
+            pretend=arguments.pretend,
+            job_retry=arguments.retry,
+            companion_hosts=arguments.companion_hosts)
 
-    site_utils_path = os.path.join(autotest_path, 'site_utils')
 
-    if not os.path.exists(autotest_path):
-        print(('%s does not exist. Have you run '
-               'build_packages? Or if you are using '
-               '--autotest_dir, make sure it points to '
-               'a valid autotest directory.' % autotest_path), file=sys.stderr)
-        return 1
-
-    realpath = os.path.realpath(__file__)
-    site_utils_path = os.path.realpath(site_utils_path)
-
-    # If we are not executing in the given path, relaunch there.
-    if os.path.dirname(realpath) != site_utils_path:
-        return perform_bootstrap_into_autotest_root(
-                arguments, autotest_path, argv)
-    else:
-        return test_runner_utils.perform_run_from_autotest_root(
-                autotest_path,
-                argv,
-                arguments.tests,
-                arguments.remote,
-                build=arguments.build,
-                board=arguments.board,
-                model=arguments.model,
-                args=arguments.args,
-                ignore_deps=not arguments.enforce_deps,
-                results_directory=results_directory,
-                ssh_verbosity=arguments.ssh_verbosity,
-                ssh_options=arguments.ssh_options,
-                iterations=arguments.iterations,
-                fast_mode=arguments.fast_mode,
-                debug=arguments.debug,
-                allow_chrome_crashes=arguments.allow_chrome_crashes,
-                pretend=arguments.pretend,
-                job_retry=arguments.retry,
-                companion_hosts=arguments.companion_hosts)
-
-def main(argv):
+def main(argv=None):
     """
     Entry point for test_that script.
 
     @param argv: arguments list
     """
+    if argv is None:
+        argv = sys.argv[1:]
     arguments, remote_argv = _parse_arguments_internal(argv)
     try:
         validate_arguments(arguments)
