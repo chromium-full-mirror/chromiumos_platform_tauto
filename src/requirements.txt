@@ -1,0 +1,11 @@
+# TODO, switch this to a proper requirements.in with the versions locked.
+six==1.10.0
+
+pyparsing
+
+#Extra requirements for chromiumos/infra/skylab_inventory
+#Do NOT need the mysql versions for autotest
+protobuf
+#Extra requirements for RTD TLS integration
+grpcio
+grpcio-tools
