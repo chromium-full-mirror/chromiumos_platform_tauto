@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 import unittest, os
 
 from autotest_lib.client.common_lib.test_utils import mock

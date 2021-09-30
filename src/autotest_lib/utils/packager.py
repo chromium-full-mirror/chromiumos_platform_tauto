@@ -1,4 +1,4 @@
-#!/usr/bin/python3 -u
+#!/usr/bin/env python3 -u
 
 """
 Utility to upload or remove the packages from the packages repository.

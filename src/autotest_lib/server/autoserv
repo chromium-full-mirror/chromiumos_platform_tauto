@@ -1,4 +1,4 @@
-#!/usr/bin/python3 -u
+#!/usr/bin/env python3 -u
 # Copyright 2007-2008 Martin J. Bligh <mbligh@google.com>, Google Inc.
 # Released under the GPL v2
 

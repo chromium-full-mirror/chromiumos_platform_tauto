@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/env python3
 # pylint: disable-msg=C0111
 
 from __future__ import absolute_import
