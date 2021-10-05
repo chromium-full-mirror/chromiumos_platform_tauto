@@ -160,7 +160,7 @@ def _main_for_all_run(argv, arguments):
     arguments.results_dir = results_directory
 
     # TODO, maybe need to force a board/model specification.
-    autotest_path = pathlib.Path.cwd().parent
+    autotest_path = pathlib.Path(__file__).parent.parent.resolve()
 
     return test_runner_utils.perform_run_from_autotest_root(
             autotest_path,

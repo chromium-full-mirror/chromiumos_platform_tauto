@@ -78,6 +78,11 @@ class harness(object):
         """A test within this job is completing (detail)"""
         pass
 
+def _import_module(module, from_where):
+    """Honestly, no idea what this is doing..."""
+    from_module = __import__(from_where, globals(), locals(), [module])
+    return getattr(from_module, module)
+
 
 def select(which, job, harness_args):
     if not which:
@@ -86,8 +91,8 @@ def select(which, job, harness_args):
     logging.debug('Selected harness: %s', which)
 
     harness_name = 'harness_%s' % which
-    harness_module = common.setup_modules.import_module(harness_name,
-                                                        'autotest_lib.client.bin')
+
+    harness_module = _import_module(harness_name, 'autotest_lib.client.bin')
     harness_instance = getattr(harness_module, harness_name)(job, harness_args)
 
     return harness_instance

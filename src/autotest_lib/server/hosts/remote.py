@@ -97,6 +97,13 @@ class RemoteHost(base_classes.Host):
     def get_autodir(self):
         return self.autodir
 
+    def get_results_dir(self):
+        output_dir_config = global_config.get_config_value('CLIENT',
+                                                           'output_dir',
+                                                            default="")
+        if output_dir_config != "":
+            return output_dir_config
+        return self.get_autodir()
 
     def set_autodir(self, autodir):
         """

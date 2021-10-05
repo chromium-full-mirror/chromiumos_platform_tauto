@@ -8,6 +8,7 @@ from __future__ import print_function
 
 import glob
 import logging
+import pathlib
 import os
 import re
 import sys
@@ -45,11 +46,16 @@ _FAIL_STATUS_RE = re.compile(
     r'\s*FAIL.*localtime=.*\s*.*\s*[0-9]+:[0-9]+:[0-9]+\s*(?P<fail_msg>.*)')
 
 LOG_BUFFER_SIZE_BYTES = 64
+VENV = True
+
+TAUTO_SRC = '/usr/local/tauto/src/'
 
 
 def _set_py_version():
     """Return the py_version flag obtained from the set environmental var."""
-    return '--py_version=%s' % int(os.getenv('PY_VERSION'))
+    if os.environ.get('PY_VERSION') is not None:
+        return '--py_version=%s' % int(os.getenv('PY_VERSION'))
+    return ''
 
 
 class AutodirNotFoundError(Exception):
@@ -184,74 +190,6 @@ class Autotest(installable_object.InstallableObject):
                 ', '.join(client_autodir_paths))
 
 
-    def get_fetch_location(self):
-        """Generate list of locations where autotest can look for packages.
-
-        Hosts are tagged with an attribute containing the URL from which
-        to source packages when running a test on that host.
-
-        @returns the list of candidate locations to check for packages.
-        """
-        c = global_config.global_config
-        repos = c.get_config_value("PACKAGES", 'fetch_location', type=list,
-                                   default=[])
-        repos.reverse()
-
-        if not server_utils.is_inside_chroot():
-            # Only try to get fetch location from host attribute if the
-            # test is not running inside chroot.
-            #
-            # Look for the repo url via the host attribute. If we are
-            # not running with a full AFE autoserv will fall back to
-            # serving packages itself from whatever source version it is
-            # sync'd to rather than using the proper artifacts for the
-            # build on the host.
-            found_repo = self._get_fetch_location_from_host_attribute()
-            if found_repo is not None:
-                # Add our new repo to the end, the package manager will
-                # later reverse the list of repositories resulting in ours
-                # being first
-                repos.append(found_repo)
-
-        return repos
-
-
-    def _get_fetch_location_from_host_attribute(self):
-        """Get repo to use for packages from host attribute, if possible.
-
-        Hosts are tagged with an attribute containing the URL
-        from which to source packages when running a test on that host.
-        If self.host is set, attempt to look this attribute in the host info.
-
-        @returns value of the 'job_repo_url' host attribute, if present.
-        """
-        if not self.host:
-            return None
-
-        try:
-            info = self.host.host_info_store.get()
-        except Exception as e:
-            # TODO(pprabhu): We really want to catch host_info.StoreError here,
-            # but we can't import host_info from this module.
-            #   - autotest_lib.hosts.host_info pulls in (naturally)
-            #   autotest_lib.hosts.__init__
-            #   - This pulls in all the host classes ever defined
-            #   - That includes abstract_ssh, which depends on autotest
-            logging.warning('Failed to obtain host info: %r', e)
-            logging.warning('Skipping autotest fetch location based on %s',
-                            JOB_REPO_URL)
-            return None
-
-        job_repo_url = info.attributes.get(JOB_REPO_URL, '')
-        if not job_repo_url:
-            logging.warning("No %s for %s", JOB_REPO_URL, self.host)
-            return None
-
-        logging.info('Got job repo url from host attributes: %s',
-                        job_repo_url)
-        return job_repo_url
-
-
     def install(self, host=None, autodir=None, use_packaging=True):
         """Install autotest.  If |host| is not None, stores it in |self.host|.
 
@@ -262,60 +200,14 @@ class Autotest(installable_object.InstallableObject):
         """
         if host:
             self.host = host
-        self._install(host=host, autodir=autodir, use_packaging=use_packaging)
+        self._install(host=host, autodir=autodir)
 
 
     def install_full_client(self, host=None, autodir=None):
-        self._install(host=host, autodir=autodir, use_autoserv=False,
-                      use_packaging=False)
-
+        self._install(host=host, autodir=autodir)
 
     def install_no_autoserv(self, host=None, autodir=None):
-        self._install(host=host, autodir=autodir, use_autoserv=False)
-
-
-    def _install_using_packaging(self, host, autodir):
-        repos = self.get_fetch_location()
-        if not repos:
-            raise error.PackageInstallError("No repos to install an "
-                                            "autotest client from")
-        # Make sure devserver has the autotest package staged
-        host.verify_job_repo_url()
-        pkgmgr = packages.PackageManager(autodir, hostname=host.hostname,
-                                         repo_urls=repos,
-                                         do_locking=False,
-                                         run_function=host.run,
-                                         run_function_dargs=dict(timeout=600))
-        # The packages dir is used to store all the packages that
-        # are fetched on that client. (for the tests,deps etc.
-        # too apart from the client)
-        pkg_dir = os.path.join(autodir, 'packages')
-        # clean up the autodir except for the packages and result_tools
-        # directory.
-        host.run('cd %s && ls | grep -v "^packages$" | grep -v "^result_tools$"'
-                 ' | xargs rm -rf && rm -rf .[!.]*' % autodir)
-        pkgmgr.install_pkg('autotest', 'client', pkg_dir, autodir,
-                           preserve_install_dir=True)
-        self.installed = True
-
-
-    def _install_using_send_file(self, host, autodir):
-        dirs_to_exclude = set(["tests", "site_tests", "deps", "profilers",
-                               "packages"])
-        light_files = [os.path.join(self.source_material, f)
-                       for f in os.listdir(self.source_material)
-                       if f not in dirs_to_exclude]
-        host.send_file(light_files, autodir, delete_dest=True)
-
-        # create empty dirs for all the stuff we excluded
-        commands = []
-        for path in dirs_to_exclude:
-            abs_path = os.path.join(autodir, path)
-            abs_path = utils.sh_escape(abs_path)
-            commands.append("mkdir -p '%s'" % abs_path)
-            commands.append("touch '%s'/__init__.py" % abs_path)
-        host.run(';'.join(commands))
-
+        self._install(host=host, autodir=autodir)
 
     def _install(self, host=None, autodir=None, use_autoserv=True,
                  use_packaging=True):
@@ -326,9 +218,8 @@ class Autotest(installable_object.InstallableObject):
 
         @param host A Host instance on which autotest will be installed
         @param autodir Location on the remote host to install to
-        @param use_autoserv Enable install modes that depend on the client
-            running with the autoserv harness
-        @param use_packaging Enable install modes that use the packaging system
+        @param use_autoserv DEPRECATED
+        @param use_packaging DEPRECATED
 
         @exception AutoservError if a tarball was not specified and
             the target host does not have svn installed in its path
@@ -353,65 +244,14 @@ class Autotest(installable_object.InstallableObject):
         host.run('rm -rf %s/*' % utils.sh_escape(results_path),
                  ignore_status=True)
 
-        # Fetch the autotest client from the nearest repository
-        if use_packaging:
-            try:
-                self._install_using_packaging(host, autodir)
-                logging.info("Installation of autotest completed using the "
-                             "packaging system.")
-                return
-            except (error.PackageInstallError, error.AutoservRunError,
-                    global_config.ConfigError) as e:
-                logging.info("Could not install autotest using the packaging "
-                             "system: %s. Trying other methods", e)
-        else:
-            # Delete the package checksum file to force dut updating local
-            # packages.
-            command = ('rm -f "%s"' %
-                       (os.path.join(autodir, packages.CHECKSUM_FILE)))
-            host.run(command)
-
-        # try to install from file or directory
-        if self.source_material:
-            c = global_config.global_config
-            supports_autoserv_packaging = c.get_config_value(
-                "PACKAGES", "serve_packages_from_autoserv", type=bool)
-            # Copy autotest recursively
-            if supports_autoserv_packaging and use_autoserv:
-                self._install_using_send_file(host, autodir)
-            else:
-                host.send_file(self.source_material, autodir, delete_dest=True)
-            logging.info("Installation of autotest completed from %s",
-                         self.source_material)
-            self.installed = True
-        else:
-            # if that fails try to install using svn
-            if utils.run('which svn').exit_status:
-                raise error.AutoservError(
-                        'svn not found on target machine: %s' %
-                        host.hostname)
-            try:
-                host.run('svn checkout %s %s' % (AUTOTEST_SVN, autodir))
-            except error.AutoservRunError as e:
-                host.run('svn checkout %s %s' % (AUTOTEST_HTTP, autodir))
-            logging.info("Installation of autotest completed using SVN.")
-            self.installed = True
-
-        # TODO(milleral): http://crbug.com/258161
-        # Send over the most recent global_config.ini after installation if one
-        # is available.
-        # This code is a bit duplicated from
-        # _Run._create_client_config_file, but oh well.
-        if self.installed and self.source_material:
-            self._send_shadow_config()
-
+        self._install_tauto_client(host)
         # sync the disk, to avoid getting 0-byte files if a test resets the DUT
         host.run(os.path.join(autodir, 'bin', 'fs_sync.py'),
                  ignore_status=True)
 
     def _send_shadow_config(self):
         logging.info('Installing updated global_config.ini.')
-        destination = os.path.join(self.host.get_autodir(),
+        destination = os.path.join('/usr/local/tauto/src/autotest_lib/client',
                                    'global_config.ini')
         with tempfile.NamedTemporaryFile(mode='w') as client_config:
             config = global_config.global_config
@@ -420,6 +260,39 @@ class Autotest(installable_object.InstallableObject):
             client_config.flush()
             self.host.send_file(client_config.name, destination)
 
+    def _install_tauto_client_venv(self, host):
+        venv_create = ("python3 -m venv {tauto_src}/venv/autotest_lib"
+                       " --system-site-packages").format(
+                                                  tauto_src=TAUTO_SRC)
+        venv_install = ("{tauto_src}/venv/autotest_lib/bin/pip install "
+                        "{tauto_src}/. --upgrade").format(tauto_src=TAUTO_SRC)
+        host.run("{}; {}".format(venv_create, venv_install))
+
+    def _install_tauto_client(self, host):
+        """Toss over the client tarball, setup.py install it, and celebrate."""
+        with tempfile.TemporaryDirectory() as td:
+            # Create the tauto tarball from local client
+            client_path = pathlib.Path(self.source_material).parent
+            utils.run('tar -czf {}/tauto.tar.gz -C {} client/'
+                      .format(td, client_path))
+            setup_py = os.path.join(client_path, 'setup.py')
+
+            # Make the destination on the host and install
+            host.run('mkdir -p /usr/local/tauto/src/autotest_lib')
+            host.send_file(setup_py, '/usr/local/tauto/src')
+            host.send_file(os.path.join(td, 'tauto.tar.gz'),
+                           '/usr/local/tauto/')
+            host.run('tar -xvzf /usr/local/tauto/tauto.tar.gz '
+                     '-C /usr/local/tauto/src/autotest_lib;'
+                     ' touch /usr/local/tauto/src/autotest_lib/__init__.py')
+            self._send_shadow_config()
+            if VENV:
+                self._install_tauto_client_venv(host)
+            else:
+                self._install_tauto_client_native(host)
+
+    def _install_tauto_client_native(self, host):
+        host.run('cd /usr/local/tauto/src/; python3 setup.py install --force')
 
     def uninstall(self, host=None):
         """
@@ -475,7 +348,7 @@ class Autotest(installable_object.InstallableObject):
         @raises AutotestRunError: If there is a problem executing
                 the control file.
         """
-        host = self._get_host_and_setup(host, use_packaging=use_packaging)
+        host = self._get_host_and_setup(host)
         logging.debug('Autotest job starts on remote host: %s',
                       host.hostname)
         results_dir = os.path.abspath(results_dir)
@@ -491,11 +364,11 @@ class Autotest(installable_object.InstallableObject):
                      client_disconnect_timeout, use_packaging=use_packaging)
 
 
-    def _get_host_and_setup(self, host, use_packaging=True):
+    def _get_host_and_setup(self, host):
         if not host:
             host = self.host
         if not self.installed:
-            self.install(host, use_packaging=use_packaging)
+            self.install(host)
 
         host.wait_up(timeout=30)
         return host
@@ -531,19 +404,8 @@ class Autotest(installable_object.InstallableObject):
         # Add the additional user arguments
         prologue_lines.append("args = %r\n" % self.job.args)
 
-        # If the packaging system is being used, add the repository list.
-        repos = None
-        try:
-            if use_packaging:
-                repos = self.get_fetch_location()
-                prologue_lines.append('job.add_repository(%s)\n' % repos)
-            else:
-                logging.debug('use_packaging is set to False, do not add any '
-                              'repository.')
-        except global_config.ConfigError as e:
-            # If repos is defined packaging is enabled so log the error
-            if repos:
-                logging.error(e)
+        logging.debug('use_packaging is set to False, do not add any '
+                      'repository.')
 
         # on full-size installs, turn on any profilers the server is using
         if not atrun.background:
@@ -729,9 +591,12 @@ class _Run(object):
 
 
     def get_background_cmd(self, section):
+        path_cmd = 'tauto_client'
+        if VENV:
+            path_cmd = '/usr/local/tauto/src/venv/autotest_lib/bin/tauto_client'
         cmd = [
                 'nohup',
-                os.path.join(self.autodir, 'bin/autotest_client'),
+                path_cmd,
                 _set_py_version()
         ]
         cmd += self.get_base_cmd_args(section)
@@ -740,9 +605,12 @@ class _Run(object):
 
 
     def get_daemon_cmd(self, section, monitor_dir):
+        path_cmd = 'tautod'
+        if VENV:
+            path_cmd = '/usr/local/tauto/src/venv/autotest_lib/bin/tautod'
         cmd = [
                 'nohup',
-                os.path.join(self.autodir, 'bin/autotestd'), monitor_dir,
+                path_cmd, monitor_dir,
                 '-H autoserv',
                 _set_py_version()
         ]
@@ -752,8 +620,11 @@ class _Run(object):
 
 
     def get_monitor_cmd(self, monitor_dir, stdout_read, stderr_read):
+        path_cmd = 'tautod_monitor'
+        if VENV:
+            path_cmd = '/usr/local/tauto/src/venv/autotest_lib/bin/tautod_monitor'
         cmd = [
-                os.path.join(self.autodir, 'bin', 'autotestd_monitor'),
+                path_cmd,
                 monitor_dir,
                 str(stdout_read),
                 str(stderr_read),
@@ -1237,7 +1108,7 @@ class log_collector(object):
         self.host = host
         if not client_tag:
             client_tag = "default"
-        self.client_results_dir = os.path.join(host.get_autodir(), "results",
+        self.client_results_dir = os.path.join(host.get_results_dir(), "results",
                                                client_tag)
         self.server_results_dir = results_dir
 
