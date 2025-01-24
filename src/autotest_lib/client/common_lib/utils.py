@@ -2457,7 +2457,7 @@ def get_function_arg_value(func, arg_name, args, kwargs):
     if arg_name in kwargs:
         return kwargs[arg_name]
 
-    argspec = inspect.getargspec(func)
+    argspec = inspect.getfullargspec(func)
     index = argspec.args.index(arg_name)
     try:
         return args[index]
